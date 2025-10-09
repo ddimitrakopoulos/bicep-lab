@@ -105,5 +105,17 @@ module appservice 'modules/appService.bicep' = {
   }
 }
 
+module vnet 'modules/virtualNetwork.bicep' = {
+  name: 'vnet-${workload}-${environment}'
+  params: {
+    vnetName: 'vnet-${workload}-${environment}'
+    location: location
+    tags: {
+      workload: workload
+      environment: environment
+    }
+  }
+}
+
 
 ///// OUTPUTS /////
