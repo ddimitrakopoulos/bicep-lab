@@ -1,41 +1,67 @@
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
 ///// PARAMETERS /////
 
 @description('Azure region used for the deployment of all resources')
 param location string
 
-@description('Abbreviation fo the location')
-param location_abbreviation string
-
 @description('Name of the workload that will be deployed')
 param workload string
 
-@description('Name of the workloads environment')
-param environment string
+@description('sku for the Static Web App')
+param sku string
 
-@description('Tags to be applied on the resource group')
-param tags object
+@description('Enable config file updates')
+param allowConfigUpdates bool
+
+@description('Repository branch (for GitHub integration).')
+param branch string 
+
+@description('GitHub repository URL for the TS app')
+param repositoryUrl string 
 
 ///// VARIABLES /////
 
-var rg_name = 'rg-${workload}-${environment}-${location_abbreviation}'
-
-var rg_tags_final = union({
-    workload: workload
-    environment: environment
-  }, tags)
-
 ///// MODULES /////
 
-module rg 'modules/resourceGroup.bicep' = {
-  name: 'rg-${workload}-${environment}-deployment'
+module staticAppModule './modules/staticWebApp.bicep' = {
+  name: 'deployStaticWebApp'
   params: {
-    name: rg_name
+    name: 'static-wapp-${workload}'
+    sku: sku
+    allowConfigFileUpdates: allowConfigUpdates
     location: location
-    tags: rg_tags_final
+    repositoryUrl: repositoryUrl
+    branch: branch
+  }
+}
+
+module log_workspace 'modules/log_workspace.bicep' = {
+  name: 'log-workspace-deployment'
+  params: {
+    name: 'log-${workload}'
+    location: location
+    sku: 'PerGB2018'
+    retention_days: 30
+    diagnostics_settings_enabled: true
+  }
+}
+
+module keyvault 'modules/keyvault.bicep' = {
+  name: 'keyvault-deployment'
+  params: {
+    name: 'kv-${workload}'
+    location: location
+    sku_name: 'standard'
+
+    soft_delete_enabled: true
+    purge_protection_enabled: true
+    enabled_for_template_deployment: false
+
+    diagnostics_settings_enabled: true
+    log_workspace_id: log_workspace.outputs.log_workspace_id
   }
 }
 
 ///// OUTPUTS /////
-output resource_groups array = [ rg_name ]
+

@@ -2,6 +2,7 @@ using 'main.bicep'
 
 param workload = 'taskGen'
 param location = 'westeurope'
-param location_abbreviation = 'weu'
-param tags = {}
-param environment = 'dev'
+param branch = 'main'
+param allowConfigUpdates = true
+param repositoryUrl = 'https://github.com/ddimitrakopoulos/taskGen-front'
+param sku = 'Free'
