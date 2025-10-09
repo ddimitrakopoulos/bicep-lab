@@ -20,9 +20,28 @@ param branch string
 @description('GitHub repository URL for the TS app')
 param repositoryUrl string 
 
+@description('Environment')
+param environment string = 'dev'
+
+@description('Name of the storage account. Must be globally unique and 3–24 lowercase letters and numbers.')
+param storageAccountName string = 'stacc${toLower(workload)}'
 ///// VARIABLES /////
 
 ///// MODULES /////
+
+
+module storage 'modules/storageAccount.bicep' = {
+  name: 'stg-${workload}-${environment}'
+  params: {
+    storageAccountName: storageAccountName
+    location: location
+    tags: {
+      workload: workload
+      environment: environment
+    }
+  }
+}
+
 
 module staticAppModule './modules/staticWebApp.bicep' = {
   name: 'deployStaticWebApp'
@@ -63,5 +82,28 @@ module keyvault 'modules/keyvault.bicep' = {
   }
 }
 
-///// OUTPUTS /////
+module table 'modules/tableStorage.bicep' = {
+  name: 'createTable-${workload}'
+  dependsOn: [ storage ]
+  params: {
+    storageAccountName: storageAccountName
+    tableName: 'table${workload}'
+  }
+}
 
+module appservice 'modules/appService.bicep' = {
+  name: 'appservice-${workload}'
+  params: {
+    appServicePlanName: 'asp-${workload}-${environment}'
+    webAppName: 'app-${workload}-${environment}'
+    location: location
+    containerImage: 'mcr.microsoft.com/azuredocs/aci-helloworld:latest'
+    tags: {
+      workload: workload
+      environment: environment
+    }
+  }
+}
+
+
+///// OUTPUTS /////
