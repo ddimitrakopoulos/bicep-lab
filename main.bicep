@@ -132,6 +132,17 @@ module keyvault 'modules/keyvault.bicep' = {
   }
 }
 
+module keyvaultPE 'modules/privateEndpoint.bicep' = {
+  name: 'kv-private-endpoint'
+  params: {
+    privateEndpointName: 'kv-pe-${workload}'
+    targetResourceId: keyvault.outputs.keyvaultId
+    subnetId: vnet.outputs.subnet_ids['private-endpoints']
+    groupIds: [ 'vault' ]
+  }
+}
+
+
 module table 'modules/tableStorage.bicep' = {
   name: 'createTable-${workload}'
   dependsOn: [ storage ]

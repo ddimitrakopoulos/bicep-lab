@@ -50,3 +50,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
   tags: tags
 }
 
+output subnet_ids object = {
+  'private-endpoints': vnet.properties.subnets[0].id
+  'webapp': vnet.properties.subnets[1].id
+}

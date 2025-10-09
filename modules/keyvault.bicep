@@ -74,4 +74,4 @@ resource keyvault_diagnostic_settings 'Microsoft.Insights/diagnosticSettings@202
 
 /// Outputs ///
 
-output keyvault_id string = keyvault.id
+output keyvaultId string = keyvault.id
