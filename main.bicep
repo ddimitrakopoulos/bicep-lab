@@ -23,8 +23,11 @@ param repositoryUrl string
 @description('Environment')
 param environment string 
 
-@description('Name of the storage account. Must be globally unique and 3–24 lowercase letters and numbers.')
-param storageAccountName string 
+@description('Name of the storage account for the table')
+param storageAccountTableName string 
+
+@description('Name of the storage account for the functions')
+param storageAccountFunctionName string 
 
 @description('Static Web App Name')
 param staticWebAppName string  
@@ -62,37 +65,20 @@ param keyvault_enabled_for_template_deployment bool
 @description('Enable diagnostics settings for Key Vault')
 param keyvault_diagnostics_settings_enabled bool
 
-@description('Name of the App Service Plan')
-param app_service_plan_name string
+@description('Name for function app doing CRUD operations')
+param function_name_crud string 
 
-@description('Name of the Web App')
-param web_app_name string
+@description('Runtime stack for crud function (e.g., dotnet, node, python)')
+param function_runtime_crud string 
 
-@description('Container image for the Web App (e.g., myregistry.azurecr.io/myapp:latest)')
-param app_service_container_image string
+@description('Name for function app doing Login operations')
+param function_name_login string
 
-@description('Name of the Virtual Network')
-param vnet_name string
-
-
+@description('Runtime stack for login function (e.g., dotnet, node, python)')
+param function_runtime_login string
 ///// VARIABLES /////
 
 ///// MODULES /////
-
-
-module storage 'modules/storageAccount.bicep' = {
-  name: 'stg-${workload}-${environment}'
-  params: {
-    storageAccountName: storageAccountName
-    location: location
-    tags: {
-      workload: workload
-      environment: environment
-    }
-  }
-}
-
-
 module staticAppModule './modules/staticWebApp.bicep' = {
   name: 'deployStaticWebApp'
   params: {
@@ -102,6 +88,30 @@ module staticAppModule './modules/staticWebApp.bicep' = {
     location: location
     repositoryUrl: repositoryUrl
     branch: branch
+  }
+}
+
+module storageAccountTable 'modules/storageAccount.bicep' = {
+  name: 'stg-table${workload}-${environment}'
+  params: {
+    storageAccountName: storageAccountTableName
+    location: location
+    tags: {
+      workload: workload
+      environment: environment
+    }
+  }
+}
+
+module storageAccountFunction 'modules/storageAccount.bicep' = {
+  name: 'stg-fun${workload}-${environment}'
+  params: {
+    storageAccountName: storageAccountFunctionName
+    location: location
+    tags: {
+      workload: workload
+      environment: environment
+    }
   }
 }
 
@@ -132,49 +142,33 @@ module keyvault 'modules/keyvault.bicep' = {
   }
 }
 
-module keyvaultPE 'modules/privateEndpoint.bicep' = {
-  name: 'kv-private-endpoint'
-  params: {
-    privateEndpointName: 'kv-pe-${workload}'
-    targetResourceId: keyvault.outputs.keyvaultId
-    subnetId: vnet.outputs.subnet_ids['private-endpoints']
-    groupIds: [ 'vault' ]
-  }
-}
-
 
 module table 'modules/tableStorage.bicep' = {
   name: 'createTable-${workload}'
-  dependsOn: [ storage ]
+  dependsOn: [ storageAccountTable ]
   params: {
-    storageAccountName: storageAccountName
+    storageAccountName: storageAccountTableName
     tableName: table_name
   }
 }
 
-module appservice 'modules/appService.bicep' = {
-  name: 'appservice-${workload}'
+module function_module_crud './modules/function.bicep' = {
+  name: 'deploy_crud_function-${workload}'
+  dependsOn: [ storageAccountFunction ]
   params: {
-    appServicePlanName: app_service_plan_name
-    webAppName: web_app_name
-    location: location
-    containerImage: app_service_container_image
-    tags: {
-      workload: workload
-      environment: environment
-    }
+    functionAppName: function_name_crud
+    storageAccountName: storageAccountFunctionName
+    runtime: function_runtime_crud
   }
 }
 
-module vnet 'modules/virtualNetwork.bicep' = {
-  name: 'vnet-${workload}-${environment}'
+module function_module_login './modules/function.bicep' = {
+  name: 'deploy_login_function-${workload}'
+  dependsOn: [ storageAccountFunction ]
   params: {
-    vnetName: vnet_name
-    location: location
-    tags: {
-      workload: workload
-      environment: environment
-    }
+    functionAppName: function_name_login
+    storageAccountName: storageAccountFunctionName
+    runtime: function_runtime_login
   }
 }
 
