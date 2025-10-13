@@ -227,14 +227,21 @@ module vnet './modules/vnet.bicep' = {
   }
 }
 
-// NIC for internal connectivity (optional, e.g., for VMs)
-module nic './modules/nic.bicep' = {
-  name: 'nic-deployment'
+///// PRIVATE ENDPOINT MODULES /////
+
+// Private Endpoint for Storage Account Table
+module peStorageTable './modules/private_endpoint.bicep' = {
+  name: 'pe-storage-table-${workload}-${environment}'
+  dependsOn: [ storageAccountTable, vnet ]
   params: {
-    nicName: nicName
-    subnetId: vnet.outputs.subnet_ids['default']
+    privateEndpointName: 'pe-${storageAccountTableName}'
+    targetResourceId: storageAccountTable.outputs.storageAccountId
+    subnetId: vnet.outputs.subnet_ids['functions']  // use functions subnet
+    groupIds: ['table']  
+    location: location
   }
 }
+
 
 ///// OUTPUTS /////
 
