@@ -77,9 +77,6 @@ param function_name_login string
 @description('Runtime stack for login function (e.g., dotnet, node, python)')
 param function_runtime_login string
 
-@description('NIC name for internal connectivity')
-param nicName string = '${workload}-${environment}-nic'
-
 ///// NETWORK PARAMETERS /////
 
 @description('Virtual Network name')
@@ -239,6 +236,27 @@ module peStorageTable './modules/private_endpoint.bicep' = {
     subnetId: vnet.outputs.subnet_ids['functions']  // use functions subnet
     groupIds: ['table']  
     location: location
+  }
+}
+
+resource kvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
+  name: 'pe-keyvault-${workload}-${environment}'
+  location: location
+  properties: {
+    subnet: {
+      id: vnet.outputs.subnet_ids['functions'] // 👈 place it in your private subnet
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'keyvault-connection'
+        properties: {
+          privateLinkServiceId: keyvault.outputs.keyvaultId
+          groupIds: [
+            'vault'
+          ]
+        }
+      }
+    ]
   }
 }
 
