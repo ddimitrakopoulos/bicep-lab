@@ -7,6 +7,9 @@ param location string = resourceGroup().location
 @description('Optional tags')
 param tags object = {}
 
+@description('Allow public access to blob (default: false)')
+param allowPublicAccess bool = false
+
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageAccountName
   location: location
@@ -16,7 +19,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   kind: 'StorageV2'
   tags: tags
   properties: {
-    allowBlobPublicAccess: false
+    allowPublicAccess: allowPublicAccess
     enableHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
     allowSharedKeyAccess: false

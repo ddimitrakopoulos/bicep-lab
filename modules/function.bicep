@@ -15,6 +15,9 @@ param location string = resourceGroup().location
 ])
 param runtime string = 'dotnet'
 
+@description('Optional subnet ID for VNet Integration')
+param vnetIntegrationSubnetId string = ''
+
 @description('Optional tags')
 param tags object = {}
 
@@ -41,11 +44,11 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     httpsOnly: true
-    siteConfig: {
+    siteConfig: union({
       appSettings: [
         {
           name: 'AzureWebJobsStorage'
-          value: storageAccount.properties.primaryEndpoints.blob
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=privatelink.blob.core.windows.net'
         }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
@@ -60,13 +63,17 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           value: '1'
         }
       ]
-    }
+    }, empty(vnetIntegrationSubnetId) ? {} : {
+      virtualNetworkSubnetId: vnetIntegrationSubnetId
+    })
   }
   identity: {
     type: 'SystemAssigned'
   }
   tags: tags
 }
+
+///// OUTPUTS /////
 
 output functionAppName string = functionApp.name
 output functionAppPrincipalId string = functionApp.identity.principalId

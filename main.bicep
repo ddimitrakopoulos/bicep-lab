@@ -76,9 +76,41 @@ param function_name_login string
 
 @description('Runtime stack for login function (e.g., dotnet, node, python)')
 param function_runtime_login string
-///// VARIABLES /////
+
+@description('NIC name for internal connectivity')
+param nicName string = '${workload}-${environment}-nic'
+
+///// NETWORK PARAMETERS /////
+
+@description('Virtual Network name')
+param vnetName string = '${workload}-${environment}-vnet'
+
+@description('Address space for VNet')
+param addressPrefix string = '10.0.0.0/16'
+
+@description('Subnet configurations')
+param subnets array = [
+  {
+    name: 'default'
+    prefix: '10.0.1.0/24'
+  }
+  {
+    name: 'storage'
+    prefix: '10.0.2.0/24'
+  }
+  {
+    name: 'functions'
+    prefix: '10.0.3.0/24'
+  }
+  {
+    name: 'private-endpoints'
+    prefix: '10.0.4.0/24'
+  }
+]
 
 ///// MODULES /////
+
+// Static Web App
 module staticAppModule './modules/staticWebApp.bicep' = {
   name: 'deployStaticWebApp'
   params: {
@@ -91,6 +123,7 @@ module staticAppModule './modules/staticWebApp.bicep' = {
   }
 }
 
+// Storage Accounts
 module storageAccountTable 'modules/storageAccountTable.bicep' = {
   name: 'stg-table-${workload}-${environment}'
   params: {
@@ -100,6 +133,7 @@ module storageAccountTable 'modules/storageAccountTable.bicep' = {
       workload: workload
       environment: environment
     }
+    allowPublicAccess: false   // make storage private
   }
 }
 
@@ -112,9 +146,11 @@ module storageAccountFunction 'modules/storageAccountFunction.bicep' = {
       workload: workload
       environment: environment
     }
+    allowPublicAccess: false   // make storage private
   }
 }
 
+// Log Analytics
 module log_workspace 'modules/log_workspace.bicep' = {
   name: 'log-workspace-deployment'
   params: {
@@ -126,23 +162,22 @@ module log_workspace 'modules/log_workspace.bicep' = {
   }
 }
 
+// Key Vault
 module keyvault 'modules/keyvault.bicep' = {
   name: 'keyvault-deployment'
   params: {
     name: keyvault_name
     location: location
     sku_name: keyvault_sku_name
-
     soft_delete_enabled: keyvault_soft_delete_enabled
     purge_protection_enabled: keyvault_purge_protection_enabled
     enabled_for_template_deployment: keyvault_enabled_for_template_deployment
-
     diagnostics_settings_enabled: keyvault_diagnostics_settings_enabled
     log_workspace_id: log_workspace.outputs.log_workspace_id
   }
 }
 
-
+// Table Storage
 module table 'modules/tableStorage.bicep' = {
   name: 'createTable-${workload}'
   dependsOn: [ storageAccountTable ]
@@ -152,25 +187,59 @@ module table 'modules/tableStorage.bicep' = {
   }
 }
 
+// Function Apps
 module function_module_crud './modules/function.bicep' = {
   name: 'deploy_crud_function-${workload}'
-  dependsOn: [ storageAccountFunction ]
+  dependsOn: [ storageAccountFunction, vnet ]  // wait for VNet
   params: {
     functionAppName: function_name_crud
     storageAccountName: storageAccountFunctionName
     runtime: function_runtime_crud
+    vnetIntegrationSubnetId: vnet.outputs.subnet_ids['functions'] // connect to VNet
   }
 }
 
 module function_module_login './modules/function.bicep' = {
   name: 'deploy_login_function-${workload}'
-  dependsOn: [ storageAccountFunction ]
+  dependsOn: [ storageAccountFunction, vnet ]
   params: {
     functionAppName: function_name_login
     storageAccountName: storageAccountFunctionName
     runtime: function_runtime_login
+    vnetIntegrationSubnetId: vnet.outputs.subnet_ids['functions']
   }
 }
 
+///// NETWORK MODULES /////
+
+// Virtual Network
+module vnet './modules/vnet.bicep' = {
+  name: '${workload}-${environment}-vnet-deployment'
+  params: {
+    vnetName: vnetName
+    location: location
+    addressPrefix: addressPrefix
+    subnets: subnets
+    tags: {
+      workload: workload
+      environment: environment
+    }
+  }
+}
+
+// NIC for internal connectivity (optional, e.g., for VMs)
+module nic './modules/nic.bicep' = {
+  name: 'nic-deployment'
+  params: {
+    nicName: nicName
+    subnetId: vnet.outputs.subnet_ids['default']
+  }
+}
 
 ///// OUTPUTS /////
+
+output subnet_ids object = vnet.outputs.subnet_ids
+output storageTableId string = storageAccountTable.outputs.storageAccountId
+output storageFunctionId string = storageAccountFunction.outputs.storageAccountId
+output crudFunctionName string = function_module_crud.outputs.functionAppName
+output loginFunctionName string = function_module_login.outputs.functionAppName

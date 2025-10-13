@@ -14,7 +14,7 @@ param kind string = 'StorageV2'
 param skuName string = 'Standard_LRS'
 
 @description('Allow public blob access (default: false)')
-param allowBlobPublicAccess bool = false
+param allowPublicAccess bool = false
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: storageAccountName
@@ -24,7 +24,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   }
   kind: kind
   properties: {
-    allowBlobPublicAccess: allowBlobPublicAccess
+    alloPublicAccess: allowPublicAccess
     accessTier: 'Hot'
   }
   tags: tags
