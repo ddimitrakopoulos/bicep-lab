@@ -91,8 +91,8 @@ module staticAppModule './modules/staticWebApp.bicep' = {
   }
 }
 
-module storageAccountTable 'modules/storageAccount.bicep' = {
-  name: 'stg-table${workload}-${environment}'
+module storageAccountTable 'modules/storageAccountTable.bicep' = {
+  name: 'stg-table-${workload}-${environment}'
   params: {
     storageAccountName: storageAccountTableName
     location: location
@@ -103,7 +103,7 @@ module storageAccountTable 'modules/storageAccount.bicep' = {
   }
 }
 
-module storageAccountFunction 'modules/storageAccount.bicep' = {
+module storageAccountFunction 'modules/storageAccountFunction.bicep' = {
   name: 'stg-fun${workload}-${environment}'
   params: {
     storageAccountName: storageAccountFunctionName
