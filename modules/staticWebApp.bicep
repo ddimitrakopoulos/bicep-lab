@@ -1,4 +1,4 @@
-/// Parameters ///
+/// PARAMETERS ///
 
 @description('Required. The name of the Static Web App.')
 @minLength(1)
@@ -24,7 +24,7 @@ param branch string = 'main'
 @description('Repository URL (GitHub). Example: https://github.com/username/repo')
 param repositoryUrl string
 
-/// Resource ///
+/// RESOURCE ///
 
 resource staticWebApp 'Microsoft.Web/staticSites@2024-04-01' = {
   name: name
@@ -42,14 +42,21 @@ resource staticWebApp 'Microsoft.Web/staticSites@2024-04-01' = {
       outputLocation: 'build' // where your app is built (e.g. npm run build)
     }
   }
+  identity: {
+    type: 'SystemAssigned'
+  }
 }
 
-
-
-/// Outputs ///
+/// OUTPUTS ///
 
 @description('The resource ID of the Static Web App.')
 output staticWebAppId string = staticWebApp.id
 
 @description('The default hostname of the Static Web App.')
 output staticWebAppDefaultHostname string = staticWebApp.properties.defaultHostname
+
+@description('The managed identity principal ID of the Static Web App.')
+output staticWebAppPrincipalId string = staticWebApp.identity.principalId
+
+@description('The managed identity tenant ID of the Static Web App.')
+output staticWebAppTenantId string = staticWebApp.identity.tenantId

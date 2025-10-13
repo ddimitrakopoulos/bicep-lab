@@ -184,26 +184,31 @@ module table 'modules/tableStorage.bicep' = {
   }
 }
 
-// Function Apps
+// CRUD Function App
 module function_module_crud './modules/function.bicep' = {
   name: 'deploy_crud_function-${workload}'
-  dependsOn: [ storageAccountFunction, vnet ]  // wait for VNet
+  dependsOn: [ storageAccountFunction, vnet, staticAppModule ]
   params: {
     functionAppName: function_name_crud
     storageAccountName: storageAccountFunctionName
     runtime: function_runtime_crud
-    vnetIntegrationSubnetId: vnet.outputs.subnet_ids['functions'] // connect to VNet
+    vnetIntegrationSubnetId: vnet.outputs.subnet_ids['functions']
+    enableEasyAuth: true
+    allowedCallerClientId: staticAppModule.outputs.staticWebAppPrincipalId
   }
 }
 
+// LOGIN Function App
 module function_module_login './modules/function.bicep' = {
   name: 'deploy_login_function-${workload}'
-  dependsOn: [ storageAccountFunction, vnet ]
+  dependsOn: [ storageAccountFunction, vnet, staticAppModule ]
   params: {
     functionAppName: function_name_login
     storageAccountName: storageAccountFunctionName
     runtime: function_runtime_login
     vnetIntegrationSubnetId: vnet.outputs.subnet_ids['functions']
+    enableEasyAuth: true
+    allowedCallerClientId: staticAppModule.outputs.staticWebAppPrincipalId
   }
 }
 

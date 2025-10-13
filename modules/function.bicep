@@ -21,6 +21,12 @@ param vnetIntegrationSubnetId string = ''
 @description('Optional tags')
 param tags object = {}
 
+@description('Enable Easy Auth (AAD) for the function')
+param enableEasyAuth bool = false
+
+@description('AAD Client ID of the frontend app (Static Web App) allowed to access this function')
+param allowedCallerClientId string = ''
+
 var hostingPlanName = '${functionAppName}-plan'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
@@ -31,7 +37,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   name: hostingPlanName
   location: location
   sku: {
-    name: 'Y1' // Consumption Plan (Dynamic)
+    name: 'Y1'
     tier: 'Dynamic'
   }
   tags: tags
@@ -41,6 +47,9 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
   name: functionAppName
   location: location
   kind: 'functionapp'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlan.id
     httpsOnly: true
@@ -48,7 +57,7 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
       appSettings: [
         {
           name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=privatelink.blob.core.windows.net'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=core.windows.net'
         }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
@@ -67,14 +76,44 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
       virtualNetworkSubnetId: vnetIntegrationSubnetId
     })
   }
-  identity: {
-    type: 'SystemAssigned'
-  }
   tags: tags
 }
 
-///// OUTPUTS /////
+resource easyAuth 'Microsoft.Web/sites/config@2022-09-01' = if (enableEasyAuth) {
+  name: '${functionAppName}/authsettingsV2'
+  properties: {
+    platform: {
+      enabled: true
+      runtimeVersion: '~1'
+    }
+    globalValidation: {
+      requireAuthentication: true
+      unauthenticatedClientAction: 'RedirectToLoginPage'
+    }
+    identityProviders: {
+      azureActiveDirectory: {
+        enabled: true
+        registration: {
+          openIdIssuer: 'https://login.microsoftonline.com/${tenant().tenantId}/v2.0'
+          clientId: allowedCallerClientId
+        }
+        validation: {
+          allowedAudiences: [
+            allowedCallerClientId
+          ]
+        }
+      }
+    }
+    login: {
+      tokenStore: {
+        enabled: true
+      }
+    }
+  }
+  dependsOn: [functionApp]
+}
 
+///// OUTPUTS /////
 output functionAppName string = functionApp.name
 output functionAppPrincipalId string = functionApp.identity.principalId
 output functionAppId string = functionApp.id
