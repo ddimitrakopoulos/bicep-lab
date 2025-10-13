@@ -25,3 +25,7 @@ param function_name_crud = 'func-crud-${workload}'
 param function_runtime_crud = 'node' // or 'dotnet' or 'python'
 param function_name_login = 'func-login-${workload}'
 param function_runtime_login = 'node' // or 'dotnet' or 'python'
+param pe_table_name = 'pe-storage-table-${workload}-${environment}'
+param pe_keyvault_name = 'pe-keyvault-${workload}-${environment}'
+param vnet_name = '${workload}-${environment}-vnet-deployment'
+

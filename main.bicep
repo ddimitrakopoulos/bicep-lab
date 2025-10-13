@@ -77,6 +77,9 @@ param function_name_login string
 @description('Runtime stack for login function (e.g., dotnet, node, python)')
 param function_runtime_login string
 
+@description('Private Endpoint name for Key Vault')
+param pe_keyvault_name string
+
 ///// NETWORK PARAMETERS /////
 
 @description('Virtual Network name')
@@ -105,6 +108,11 @@ param subnets array = [
   }
 ]
 
+@description('Private Endpoint name for Storage Table')
+param pe_table_name string
+
+@description('virtual network name for private endpoints')
+param vnet_name string 
 ///// MODULES /////
 
 // Static Web App
@@ -216,7 +224,7 @@ module function_module_login './modules/function.bicep' = {
 
 // Virtual Network
 module vnet './modules/vnet.bicep' = {
-  name: '${workload}-${environment}-vnet-deployment'
+  name: vnet_name
   params: {
     vnetName: vnetName
     location: location
@@ -233,10 +241,10 @@ module vnet './modules/vnet.bicep' = {
 
 // Private Endpoint for Storage Account Table
 module peStorageTable './modules/private_endpoint.bicep' = {
-  name: 'pe-storage-table-${workload}-${environment}'
+  name: pe_table_name
   dependsOn: [ storageAccountTable, vnet ]
   params: {
-    privateEndpointName: 'pe-${storageAccountTableName}'
+    privateEndpointName: 'table-connection'
     targetResourceId: storageAccountTable.outputs.storageAccountId
     subnetId: vnet.outputs.subnet_ids['functions']  // use functions subnet
     groupIds: ['table']  
@@ -245,7 +253,7 @@ module peStorageTable './modules/private_endpoint.bicep' = {
 }
 
 resource kvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
-  name: 'pe-keyvault-${workload}-${environment}'
+  name: pe_keyvault_name
   location: location
   properties: {
     subnet: {
