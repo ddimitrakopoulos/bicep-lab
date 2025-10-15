@@ -25,10 +25,11 @@ jobs:
       - name: List resources in resource group
         id: list_resources
         run: |
-          RESOURCE_GROUP="rg-taskGen-dev-weu" # replace with your RG name
-          RESOURCES=$(az resource list --resource-group $RESOURCE_GROUP --query "[].id" -o tsv)
+          RESOURCE_GROUP="rg-taskGen-dev-weu"
+          RESOURCES=$(az resource list --resource-group $RESOURCE_GROUP --query "[].id")
           echo "resources=$RESOURCES" >> $GITHUB_OUTPUT
 
+        
       # 4️⃣ Delete resources if any exist
       - name: Delete resources if any
         if: steps.list_resources.outputs.resources != ''
