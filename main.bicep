@@ -240,76 +240,7 @@ module vnet './modules/vnet.bicep' = {
 ///// PRIVATE ENDPOINT MODULES /////
 
 
-resource peStorageTable 'Microsoft.Network/privateEndpoints@2023-09-01' = {
-  name: pe_table_name
-  location: location
-  dependsOn: [storageAccountTable, vnet]
-  properties: {
-    subnet: {
-      id: vnet.outputs.subnet_ids['functions']
-    }
-    privateLinkServiceConnections: [
-      {
-        name: 'table-connection'
-        properties: {
-          privateLinkServiceId: storageAccountTable.outputs.storageAccountId
-          groupIds: ['table']
-        }
-      }
-    ]
-    privateDnsZoneGroups: [
-      {
-        name: 'table-dns-group'
-        properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'tableZoneConfig'
-              properties: {
-                privateDnsZoneId: dnsZoneTable.id
-              }
-            }
-          ]
-        }
-      }
-    ]
-  }
-}
-
-resource kvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
-  name: pe_keyvault_name
-  location: location
-  properties: {
-    subnet: {
-      id: vnet.outputs.subnet_ids['functions']
-    }
-    privateLinkServiceConnections: [
-      {
-        name: 'keyvault-connection'
-        properties: {
-          privateLinkServiceId: keyvault.outputs.keyvaultId
-          groupIds: ['vault']
-        }
-      }
-    ]
-    privateDnsZoneGroups: [
-      {
-        name: 'kv-dns-group'
-        properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'kvZoneConfig'
-              properties: {
-                privateDnsZoneId: dnsZoneVault.id
-              }
-            }
-          ]
-        }
-      }
-    ]
-  }
-}
-
-
+// DNS Zones
 resource dnsZoneVault 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: 'privatelink.vaultcore.azure.net'
   location: 'global'
@@ -343,6 +274,43 @@ resource dnsZoneLinkTable 'Microsoft.Network/privateDnsZones/virtualNetworkLinks
     }
     registrationEnabled: false
   }
+}
+
+// Private Endpoints
+module peStorage './modules/private_endpoint.bicep' = {
+  name: 'peStorageModule'
+  params: {
+    peName: pe_table_name
+    location: location
+    subnetId: vnet.outputs.subnet_ids['functions']
+    privateLinkServiceId: storageAccountTable.outputs.storageAccountId
+    groupIds: ['table']
+    dnsZoneId: dnsZoneTable.id
+    dnsGroupName: 'table-dns-group'
+    connectionName: 'table-connection'
+  }
+  dependsOn: [
+    storageAccountTable
+    vnet
+  ]
+}
+
+module peKeyVault './modules/private_endpoint.bicep' = {
+  name: 'peKeyVaultModule'
+  params: {
+    peName: pe_keyvault_name
+    location: location
+    subnetId: vnet.outputs.subnet_ids['functions']
+    privateLinkServiceId: keyvault.outputs.keyvaultId
+    groupIds: ['vault']
+    dnsZoneId: dnsZoneVault.id
+    dnsGroupName: 'kv-dns-group'
+    connectionName: 'keyvault-connection'
+  }
+  dependsOn: [
+    keyvault
+    vnet
+  ]
 }
 
 
