@@ -1,0 +1,62 @@
+name: Deploy Bicep and Trigger TS Repo
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy_bicep:
+    runs-on: ubuntu-latest
+    steps:
+
+      # 1️⃣ Checkout Bicep repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2️⃣ Login to Azure
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # 3️⃣ Check if the resource group has resources
+      - name: List resources in resource group
+        id: list_resources
+        run: |
+          RESOURCE_GROUP="rg-taskGen-dev-weu" # replace with your RG name
+          RESOURCES=$(az resource list --resource-group $RESOURCE_GROUP --query "[].id" -o tsv)
+          echo "resources=$RESOURCES" >> $GITHUB_OUTPUT
+
+      # 4️⃣ Delete resources if any exist
+      - name: Delete resources if any
+        if: steps.list_resources.outputs.resources != ''
+        run: |
+          RESOURCE_GROUP="rg-taskGen-dev-weu"
+          echo "Deleting all resources in $RESOURCE_GROUP..."
+          az resource list --resource-group $RESOURCE_GROUP --query "[].id" -o tsv | xargs -n1 az resource delete --ids
+
+      # 5️⃣ Deploy Bicep template
+      - name: Deploy Bicep
+        run: |
+          RESOURCE_GROUP="rg-taskGen-dev-weu"
+          LOCATION="westeurope" 
+          TEMPLATE_FILE="main.bicep" 
+          
+          # Create RG if not exists
+          az group create --name $RESOURCE_GROUP --location $LOCATION
+          
+          # Deploy Bicep
+          az deployment group create \
+            --resource-group $RESOURCE_GROUP \
+            --template-file $TEMPLATE_FILE \
+            --parameters main.bicepparam  # optional if you have a parameters file
+
+      # 6️⃣ Trigger TS repo workflow
+      - name: Trigger TS repo deployment
+        uses: peter-evans/workflow-dispatch@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ddimitrakopoulos/taskGen-front
+          workflow: deploy-static-web-app.yml
+          ref: main
