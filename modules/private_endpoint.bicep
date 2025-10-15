@@ -1,20 +1,14 @@
-@description('Name of the private endpoint')
-param privateEndpointName string
-
-@description('ID of the target resource (Storage, KeyVault, SQL, etc.)')
-param targetResourceId string
-
-@description('Subnet ID where the private endpoint will be deployed')
+param peName string
+param location string
 param subnetId string
-
-@description('List of groupIds for the service (e.g., ["vault"] for Key Vault, ["blob","table"] for Storage)')
+param privateLinkServiceId string
 param groupIds array
+param dnsZoneId string
+param dnsGroupName string = 'dns-group'
+param connectionName string = 'connection'
 
-@description('Location for the private endpoint')
-param location string = resourceGroup().location
-
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
-  name: privateEndpointName
+resource pe 'Microsoft.Network/privateEndpoints@2023-09-01' = {
+  name: peName
   location: location
   properties: {
     subnet: {
@@ -22,18 +16,29 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
     }
     privateLinkServiceConnections: [
       {
-        name: '${privateEndpointName}-conn'
+        name: connectionName
         properties: {
-          privateLinkServiceId: targetResourceId
+          privateLinkServiceId: privateLinkServiceId
           groupIds: groupIds
-          requestMessage: 'Please approve my connection'
-          privateLinkServiceConnectionState: {
-            status: 'Pending'
-            description: 'Awaiting approval'
-          }
+        }
+      }
+    ]
+    privateDnsZoneGroups: [
+      {
+        name: dnsGroupName
+        properties: {
+          privateDnsZoneConfigs: [
+            {
+              name: '${dnsGroupName}Config'
+              properties: {
+                privateDnsZoneId: dnsZoneId
+              }
+            }
+          ]
         }
       }
     ]
   }
 }
 
+output peId string = pe.id
