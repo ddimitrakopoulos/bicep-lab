@@ -34,7 +34,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   location: location
   sku: {
     name: 'Y1'
-    tier: 'Dynamic'
+    tier: 'ElasticPremium'
   }
   tags: tags
 }
@@ -108,6 +108,8 @@ resource easyAuth 'Microsoft.Web/sites/config@2022-09-01' = if (enableEasyAuth) 
   }
   dependsOn: [functionApp]
 }
+
+
 
 ///// OUTPUTS /////
 output functionAppName string = functionApp.name

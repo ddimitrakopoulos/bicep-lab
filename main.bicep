@@ -239,16 +239,39 @@ module vnet './modules/vnet.bicep' = {
 
 ///// PRIVATE ENDPOINT MODULES /////
 
-// Private Endpoint for Storage Account Table
-module peStorageTable './modules/private_endpoint.bicep' = {
+
+resource peStorageTable 'Microsoft.Network/privateEndpoints@2023-09-01' = {
   name: pe_table_name
-  dependsOn: [ storageAccountTable, vnet ]
-  params: {
-    privateEndpointName: 'table-connection'
-    targetResourceId: storageAccountTable.outputs.storageAccountId
-    subnetId: vnet.outputs.subnet_ids['functions']  // use functions subnet
-    groupIds: ['table']  
-    location: location
+  location: location
+  dependsOn: [storageAccountTable, vnet]
+  properties: {
+    subnet: {
+      id: vnet.outputs.subnet_ids['functions']
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'table-connection'
+        properties: {
+          privateLinkServiceId: storageAccountTable.outputs.storageAccountId
+          groupIds: ['table']
+        }
+      }
+    ]
+    privateDnsZoneGroups: [
+      {
+        name: 'table-dns-group'
+        properties: {
+          privateDnsZoneConfigs: [
+            {
+              name: 'tableZoneConfig'
+              properties: {
+                privateDnsZoneId: dnsZoneTable.id
+              }
+            }
+          ]
+        }
+      }
+    ]
   }
 }
 
@@ -257,19 +280,68 @@ resource kvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
   location: location
   properties: {
     subnet: {
-      id: vnet.outputs.subnet_ids['functions'] // 👈 place it in your private subnet
+      id: vnet.outputs.subnet_ids['functions']
     }
     privateLinkServiceConnections: [
       {
         name: 'keyvault-connection'
         properties: {
           privateLinkServiceId: keyvault.outputs.keyvaultId
-          groupIds: [
-            'vault'
+          groupIds: ['vault']
+        }
+      }
+    ]
+    privateDnsZoneGroups: [
+      {
+        name: 'kv-dns-group'
+        properties: {
+          privateDnsZoneConfigs: [
+            {
+              name: 'kvZoneConfig'
+              properties: {
+                privateDnsZoneId: dnsZoneVault.id
+              }
+            }
           ]
         }
       }
     ]
+  }
+}
+
+
+resource dnsZoneVault 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.vaultcore.azure.net'
+  location: 'global'
+}
+
+resource dnsZoneTable 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.table.core.windows.net'
+  location: 'global'
+}
+
+// Link zones to your VNet
+resource dnsZoneLinkVault 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  name: 'link-vault'
+  parent: dnsZoneVault
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.outputs.vnet_id
+    }
+    registrationEnabled: false
+  }
+}
+
+resource dnsZoneLinkTable 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  name: 'link-table'
+  parent: dnsZoneTable
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.outputs.vnet_id
+    }
+    registrationEnabled: false
   }
 }
 

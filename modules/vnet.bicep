@@ -56,3 +56,4 @@ output subnet_ids object = {
   'storage': vnet.properties.subnets[1].id
   'functions': vnet.properties.subnets[2].id
 }
+output vnet_id string = vnet.id
