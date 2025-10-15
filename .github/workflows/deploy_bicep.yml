@@ -29,29 +29,21 @@ jobs:
           RESOURCES=$(az resource list --resource-group $RESOURCE_GROUP --query "[].id" -o tsv | tr '\n' ',' | sed 's/,$//')
           echo "resources=$RESOURCES" >> $GITHUB_OUTPUT
         
-      # 4️⃣ Delete resources if any exist
-      - name: Delete resources if any
-        if: steps.list_resources.outputs.resources != ''
-        run: |
-          RESOURCE_GROUP="rg-taskGen-dev-weu"
-          echo "Deleting all resources in $RESOURCE_GROUP..."
-          az resource list --resource-group $RESOURCE_GROUP --query "[].id" -o tsv | xargs -n1 az resource delete --ids
-
       # 5️⃣ Deploy Bicep template
-      - name: Deploy Bicep
+      - name: Deploy Bicep (complete mode)
         run: |
           RESOURCE_GROUP="rg-taskGen-dev-weu"
-          LOCATION="westeurope" 
-          TEMPLATE_FILE="main.bicep" 
-          
-          # Create RG if not exists
+          LOCATION="westeurope"
+          TEMPLATE_FILE="main.bicep"
+      
           az group create --name $RESOURCE_GROUP --location $LOCATION
-          
-          # Deploy Bicep
+      
           az deployment group create \
             --resource-group $RESOURCE_GROUP \
             --template-file $TEMPLATE_FILE \
-            --parameters main.bicepparam  # optional if you have a parameters file
+            --parameters main.bicepparam \
+            --mode Complete
+
 
       # 6️⃣ Trigger TS repo workflow
       - name: Trigger TS repo workflow via REST API
