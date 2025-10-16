@@ -44,18 +44,21 @@ jobs:
             --parameters main.bicepparam \
             --mode Complete
 
-      - name: Give GitHub SP access to Key Vault
+      - name: Get GitHub runner public IP
+        id: ip
         run: |
-          az keyvault set-policy \
-            --name kv-taskGen-2 \
-            --spn ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }} \
-            --secret-permissions get list set
-
-      - name: Temporarily enable public access to Key Vault
+          RUNNER_IP=$(curl -s ifconfig.me)
+          echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
+          echo "Current runner IP: $RUNNER_IP"
+      
+      - name: Temporarily allow GitHub runner IP
         run: |
           KV_NAME=kv-taskGen-2
-          echo "🔓 Enabling public network access to Key Vault..."
-          az keyvault update --name $KV_NAME --public-network-access Enabled
+          echo "🔓 Allowing current runner IP ${RUNNER_IP}/32..."
+          az keyvault network-rule add \
+            --name $KV_NAME \
+            --ip-address ${RUNNER_IP}/32
+
 
       - name: Set secrets in Key Vault
         run: |
@@ -65,12 +68,15 @@ jobs:
           az keyvault secret set --vault-name $KV_NAME --name hellopass --value "${{ secrets.hello_dummy_password }}"
 
 
-      - name: Disable public access to Key Vault again
+      - name: Remove GitHub runner IP from Key Vault
         if: always()
         run: |
           KV_NAME=kv-taskGen-2
-          echo "🔒 Disabling public network access to Key Vault..."
-          az keyvault update --name $KV_NAME --public-network-access Disabled
+          echo "🔒 Removing current runner IP ${RUNNER_IP}/32..."
+          az keyvault network-rule remove \
+            --name $KV_NAME \
+            --ip-address ${RUNNER_IP}/32
+
 
 
       # 6️⃣ Trigger TS repo workflow
