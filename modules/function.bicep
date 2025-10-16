@@ -49,6 +49,7 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     httpsOnly: true
+    publicNetworkAccess: 'Enabled'
     siteConfig: union({
       appSettings: [
         {
@@ -67,6 +68,10 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
           value: '1'
         }
+        {
+          name: 'WEBSITE_DISABLE_FTP'
+          value: 'true'
+        }
       ]
     }, empty(vnetIntegrationSubnetId) ? {} : {
       virtualNetworkSubnetId: vnetIntegrationSubnetId
@@ -80,7 +85,7 @@ resource easyAuth 'Microsoft.Web/sites/config@2022-09-01' = if (enableEasyAuth) 
   properties: {
     platform: {
       enabled: true
-      runtimeVersion: '~1'
+      runtimeVersion: '~2'
     }
     globalValidation: {
       requireAuthentication: true
