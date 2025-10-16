@@ -46,10 +46,10 @@ jobs:
 
       - name: Set secrets in Key Vault
         run: |
-          KV_NAME=keyvault
-          az keyvault secret set --kv-dev-2 $KV_NAME --name JWT_SECRET --value "${{ secrets.JWT_SECRET }}"
-          az keyvault secret set --kv-dev-2 $KV_NAME --name ddimitrpass --value "${{ secrets.ddimitr_dummy_password }}"
-          az keyvault secret set --kv-dev-2 $KV_NAME --name hellopass --value "${{ secrets.hello_dummy_password }}"
+          KV_NAME=kv-dev-2
+          az keyvault secret set --vault-name $KV_NAME --name JWT_SECRET --value "${{ secrets.JWT_SECRET }}"
+          az keyvault secret set --vault-name $KV_NAME --name ddimitrpass --value "${{ secrets.ddimitr_dummy_password }}"
+          az keyvault secret set --vault-name $KV_NAME --name hellopass --value "${{ secrets.hello_dummy_password }}"
 
 
       # 6️⃣ Trigger TS repo workflow
