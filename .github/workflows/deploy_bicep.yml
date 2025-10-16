@@ -44,6 +44,14 @@ jobs:
             --parameters main.bicepparam \
             --mode Complete
 
+      - name: Give GitHub SP access to Key Vault
+        run: |
+          az keyvault set-policy \
+            --name kv-taskGen-2 \
+            --spn ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }} \
+            --secret-permissions get list set
+
+
       - name: Set secrets in Key Vault
         run: |
           KV_NAME=kv-taskGen-2
