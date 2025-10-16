@@ -44,6 +44,13 @@ jobs:
             --parameters main.bicepparam \
             --mode Complete
 
+      - name: Set secrets in Key Vault
+        run: |
+          KV_NAME=keyvault
+          az keyvault secret set --kv-dev-2 $KV_NAME --name JWT_SECRET --value "${{ secrets.JWT_SECRET }}"
+          az keyvault secret set --kv-dev-2 $KV_NAME --name ddimitrpass --value "${{ secrets.ddimitr_dummy_password }}"
+          az keyvault secret set --kv-dev-2 $KV_NAME --name hellopass --value "${{ secrets.hello_dummy_password }}"
+
 
       # 6️⃣ Trigger TS repo workflow
       - name: Trigger TS repo deployment
