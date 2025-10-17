@@ -29,7 +29,7 @@ jobs:
           RESOURCES=$(az resource list --resource-group $RESOURCE_GROUP --query "[].id" -o tsv | tr '\n' ',' | sed 's/,$//')
           echo "resources=$RESOURCES" >> $GITHUB_OUTPUT
         
-      # 5️⃣ Deploy Bicep template
+      # 4️⃣ Deploy Bicep template
       - name: Deploy Bicep (complete mode)
         run: |
           RESOURCE_GROUP="rg-taskGen-dev-weu"
@@ -44,6 +44,7 @@ jobs:
             --parameters main.bicepparam \
             --mode Complete
 
+      # 5️⃣ Get GitHub runner public IP
       - name: Get GitHub runner public IP
         id: ip
         run: |
@@ -51,6 +52,15 @@ jobs:
           echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
           echo "Current runner IP: $RUNNER_IP"
 
+      # 6️⃣ Temporarily enable public access so IP rules are honored 🔧
+      - name: Enable Key Vault public network access
+        run: |
+          KV_NAME=kv-taskGen-2
+          az keyvault update \
+            --name $KV_NAME \
+            --public-network-access Enabled
+
+      # 7️⃣ Give GitHub SP access to Key Vault
       - name: Give GitHub SP access to Key Vault
         run: |
           az keyvault set-policy \
@@ -58,6 +68,7 @@ jobs:
             --spn ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }} \
             --secret-permissions get list set
       
+      # 8️⃣ Temporarily allow GitHub runner IP
       - name: Temporarily allow GitHub runner IP
         run: |
           KV_NAME=kv-taskGen-2
@@ -66,7 +77,7 @@ jobs:
             --name $KV_NAME \
             --ip-address ${RUNNER_IP}/32
 
-
+      # 9️⃣ Set secrets in Key Vault
       - name: Set secrets in Key Vault
         run: |
           KV_NAME=kv-taskGen-2
@@ -74,8 +85,8 @@ jobs:
           az keyvault secret set --vault-name $KV_NAME --name ddimitrpass --value "${{ secrets.ddimitr_dummy_password }}"
           az keyvault secret set --vault-name $KV_NAME --name hellopass --value "${{ secrets.hello_dummy_password }}"
 
-
-      - name: Remove GitHub runner IP from Key Vault
+      # 🔟 Clean up: remove IP and disable public access 🔧
+      - name: Revert Key Vault network settings
         if: always()
         run: |
           KV_NAME=kv-taskGen-2
@@ -83,8 +94,11 @@ jobs:
           az keyvault network-rule remove \
             --name $KV_NAME \
             --ip-address ${RUNNER_IP}/32
-
-
+          
+          echo "🚫 Disabling public network access again..."
+          az keyvault update \
+            --name $KV_NAME \
+            --public-network-access Disabled
 
       # 6️⃣ Trigger TS repo workflow
       - name: Trigger TS repo deployment
@@ -94,4 +108,3 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/ddimitrakopoulos/taskGen-front/actions/workflows/deploy-static-web-app.yml/dispatches \
             -d '{"ref":"main"}'
-
