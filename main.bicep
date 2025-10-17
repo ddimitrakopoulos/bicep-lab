@@ -201,8 +201,8 @@ module function_module_crud './modules/function.bicep' = {
     storageAccountName: storageAccountFunctionName
     runtime: function_runtime_crud
     vnetIntegrationSubnetId: vnet.outputs.subnet_ids['functions']
-    enableEasyAuth: true
-    allowedCallerClientId: staticAppModule.outputs.staticWebAppPrincipalId
+    enableEasyAuth: false        // disable Easy Auth
+    allowedCallerClientId: ''    // remove any restriction
   }
 }
 
@@ -215,8 +215,8 @@ module function_module_login './modules/function.bicep' = {
     storageAccountName: storageAccountFunctionName
     runtime: function_runtime_login
     vnetIntegrationSubnetId: vnet.outputs.subnet_ids['functions']
-    enableEasyAuth: true
-    allowedCallerClientId: staticAppModule.outputs.staticWebAppPrincipalId
+    enableEasyAuth: false        // disable Easy Auth
+    allowedCallerClientId: ''    // remove any restriction
   }
 }
 
