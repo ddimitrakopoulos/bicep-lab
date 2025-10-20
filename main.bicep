@@ -73,6 +73,9 @@ param app_service_plan_name string
 @description('App Service SKU name')
 param app_service_sku_name string 
 
+param jwtSecret string
+param ddimitrPass string
+param helloPass string
 
 ///// MODULES /////
 
@@ -123,7 +126,7 @@ module keyvault 'modules/keyvault.bicep' = {
 resource jwtsecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: '${keyvault_name}/jwtsecret'
   properties: {
-    value: '${{ secrets.JWT_SECRET }}'
+    value: jwtSecret
   }
   dependsOn: [
     keyvault
@@ -133,7 +136,7 @@ resource jwtsecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
 resource ddimitrpass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: '${keyvault_name}/ddimitrpass'
   properties: {
-    value: '${{ secrets.ddimitr_dummy_password }}'
+    value: ddimitrPass
   }
   dependsOn: [
     keyvault
@@ -143,7 +146,7 @@ resource ddimitrpass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
 resource hellopass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: '${keyvault_name}/hellopass'
   properties: {
-    value: '${{ secrets.hello_dummy_password }}'
+    value: helloPass
   }
   dependsOn: [
     keyvault
