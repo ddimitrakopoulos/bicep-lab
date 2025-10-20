@@ -90,27 +90,30 @@ module storageAccountTable 'modules/storageAccountTable.bicep' = {
   }
 }
 
-param name string
-param location string
-param sku_name string
-param soft_delete_enabled bool
-param purge_protection_enabled bool
-param enabled_for_template_deployment bool
-param diagnostics_settings_enabled bool
-param log_workspace_id string
+// Log Analytics
+module log_workspace 'modules/log_workspace.bicep' = {
+  name: 'log-workspace-deployment'
+  params: {
+    name: log_workspace_name
+    location: location
+    sku: log_workspace_sku
+    retention_days: retention_days
+    diagnostics_settings_enabled: log_workspace_diagnostics_settings_enabled
+  }
+}
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
-  name: name
-  location: location
-  properties: {
-    sku: {
-      family: 'A'
-      name: sku_name
-    }
-    tenantId: subscription().tenantId
-    enableSoftDelete: soft_delete_enabled
-    enablePurgeProtection: purge_protection_enabled
-    enabledForTemplateDeployment: enabled_for_template_deployment
+// Key Vault
+module keyvault 'modules/keyvault.bicep' = {
+  name: 'keyvault-deployment'
+  params: {
+    name: keyvault_name
+    location: location
+    sku_name: keyvault_sku_name
+    soft_delete_enabled: keyvault_soft_delete_enabled
+    purge_protection_enabled: keyvault_purge_protection_enabled
+    enabled_for_template_deployment: keyvault_enabled_for_template_deployment
+    diagnostics_settings_enabled: keyvault_diagnostics_settings_enabled
+    log_workspace_id: log_workspace.outputs.log_workspace_id
   }
 }
 
@@ -142,34 +145,6 @@ resource hellopass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   dependsOn: [
     keyvault
   ]
-}
-
-
-// Log Analytics
-module log_workspace 'modules/log_workspace.bicep' = {
-  name: 'log-workspace-deployment'
-  params: {
-    name: log_workspace_name
-    location: location
-    sku: log_workspace_sku
-    retention_days: retention_days
-    diagnostics_settings_enabled: log_workspace_diagnostics_settings_enabled
-  }
-}
-
-// Key Vault
-module keyvault 'modules/keyvault.bicep' = {
-  name: 'keyvault-deployment'
-  params: {
-    name: keyvault_name
-    location: location
-    sku_name: keyvault_sku_name
-    soft_delete_enabled: keyvault_soft_delete_enabled
-    purge_protection_enabled: keyvault_purge_protection_enabled
-    enabled_for_template_deployment: keyvault_enabled_for_template_deployment
-    diagnostics_settings_enabled: keyvault_diagnostics_settings_enabled
-    log_workspace_id: log_workspace.outputs.log_workspace_id
-  }
 }
 
 // Table Storage
@@ -327,6 +302,7 @@ module appServiceModule './modules/app_service.bicep' = {
 
 output subnet_ids object = vnet.outputs.subnet_ids
 output storageTableId string = storageAccountTable.outputs.storageAccountId
+
 
 
 
