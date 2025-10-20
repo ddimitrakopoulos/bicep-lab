@@ -13,12 +13,6 @@ param skuName string = 'B1'
 @description('Node.js runtime version')
 param nodeVersion string = '~20'
 
-@description('GitHub repo URL for deployment')
-param repositoryUrl string
-
-@description('GitHub branch to deploy from')
-param branch string = 'main'
-
 @description('Subnet ID for VNet integration')
 param subnetId string
 
@@ -36,7 +30,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   }
 }
 
-// Create the Web App
+// Create the Web App (without source control or deployment)
 resource webApp 'Microsoft.Web/sites@2022-09-01' = {
   name: appServiceName
   location: location
@@ -65,17 +59,6 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
   }
 }
 
-// GitHub source control configuration
-resource sourceControl 'Microsoft.Web/sites/sourcecontrols@2022-09-01' = {
-  parent: webApp
-  name: 'web'
-  properties: {
-    repoUrl: repositoryUrl
-    branch: branch
-    isManualIntegration: true
-  }
-}
-
 // Integrate App Service with VNet subnet
 resource vnetIntegration 'Microsoft.Web/sites/networkConfig@2022-09-01' = {
   parent: webApp
@@ -85,7 +68,6 @@ resource vnetIntegration 'Microsoft.Web/sites/networkConfig@2022-09-01' = {
   }
 }
 
-// Outputs
-output appServiceUrl string = 'https://${webApp.properties.defaultHostName}'
+// Outputs (no URL or source control info)
 output appServiceId string = webApp.id
 output appServicePlanId string = appServicePlan.id

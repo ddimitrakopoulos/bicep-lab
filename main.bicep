@@ -8,12 +8,6 @@ param location string
 @description('Name of the workload that will be deployed')
 param workload string
 
-@description('Repository branch (for GitHub integration).')
-param branch string 
-
-@description('GitHub repository URL for the TS app')
-param repositoryUrl string 
-
 @description('Environment')
 param environment string 
 
@@ -266,8 +260,6 @@ module appServiceModule './modules/app_service.bicep' = {
     skuName: app_service_sku_name
     location: location
     nodeVersion: '~20'
-    repositoryUrl: repositoryUrl
-    branch: branch
     subnetId: vnet.outputs.subnet_ids['appservice']
   }
   dependsOn: [
