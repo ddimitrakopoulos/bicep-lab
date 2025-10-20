@@ -117,6 +117,9 @@ module keyvault 'modules/keyvault.bicep' = {
   }
 }
 
+
+
+
 resource jwtsecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: '${keyvault_name}/jwtsecret'
   properties: {
@@ -302,8 +305,4 @@ module appServiceModule './modules/app_service.bicep' = {
 
 output subnet_ids object = vnet.outputs.subnet_ids
 output storageTableId string = storageAccountTable.outputs.storageAccountId
-
-
-
-
 
