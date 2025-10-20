@@ -42,6 +42,7 @@ jobs:
             --resource-group $RESOURCE_GROUP \
             --template-file $TEMPLATE_FILE \
             --parameters main.bicepparam \
+            --verbose
             --mode Complete
 
       # 5️⃣ Get GitHub runner public IP
