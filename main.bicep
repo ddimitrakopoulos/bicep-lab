@@ -90,6 +90,50 @@ module storageAccountTable 'modules/storageAccountTable.bicep' = {
   }
 }
 
+param name string
+param location string
+param sku_name string
+param soft_delete_enabled bool
+param purge_protection_enabled bool
+param enabled_for_template_deployment bool
+param diagnostics_settings_enabled bool
+param log_workspace_id string
+
+resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
+  name: name
+  location: location
+  properties: {
+    sku: {
+      family: 'A'
+      name: sku_name
+    }
+    tenantId: subscription().tenantId
+    enableSoftDelete: soft_delete_enabled
+    enablePurgeProtection: purge_protection_enabled
+    enabledForTemplateDeployment: enabled_for_template_deployment
+  }
+}
+
+resource kvSecrets 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = [for secret in [
+  {
+    name: 'MySecret1'
+    value: 'secret-value-1'
+  }
+  {
+    name: 'MySecret2'
+    value: 'secret-value-2'
+  }
+]: {
+  name: '${keyVault.name}/${secret.name}'
+  properties: {
+    value: secret.value
+  }
+  dependsOn: [
+    keyVault
+  ]
+}]
+
+
 // Log Analytics
 module log_workspace 'modules/log_workspace.bicep' = {
   name: 'log-workspace-deployment'
@@ -272,4 +316,5 @@ module appServiceModule './modules/app_service.bicep' = {
 
 output subnet_ids object = vnet.outputs.subnet_ids
 output storageTableId string = storageAccountTable.outputs.storageAccountId
+
 
