@@ -42,8 +42,13 @@ jobs:
             --resource-group $RESOURCE_GROUP \
             --template-file $TEMPLATE_FILE \
             --parameters main.bicepparam \
+            --parameters \
+              jwtSecret="${{ secrets.JWT_SECRET }}" \
+              ddimitrPass="${{ secrets.ddimitr_dummy_password }}" \
+              helloPass="${{ secrets.hello_dummy_password }}"
             --verbose \
             --mode Complete
+
 
       # 1️⃣1️⃣ Trigger TS repo workflow
       - name: Trigger TS repo deployment
