@@ -114,6 +114,36 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
   }
 }
 
+resource jwtsecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  name: '${keyvault_name}/jwtsecret'
+  properties: {
+    value: "${{ secrets.JWT_SECRET }}"
+  }
+  dependsOn: [
+    keyvault
+  ]
+}
+
+resource ddimitrpass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  name: '${keyvault_name}/ddimitrpass'
+  properties: {
+    value: "${{ secrets.ddimitr_dummy_password }}"
+  }
+  dependsOn: [
+    keyvault
+  ]
+}
+
+resource hellopass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  name: '${keyvault_name}/hellopass'
+  properties: {
+    value: "${{ secrets.hello_dummy_password }}"
+  }
+  dependsOn: [
+    keyvault
+  ]
+}
+
 resource kvSecrets 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = [for secret in [
   {
     name: 'MySecret1'
@@ -316,5 +346,6 @@ module appServiceModule './modules/app_service.bicep' = {
 
 output subnet_ids object = vnet.outputs.subnet_ids
 output storageTableId string = storageAccountTable.outputs.storageAccountId
+
 
 
