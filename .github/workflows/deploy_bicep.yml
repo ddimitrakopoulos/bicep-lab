@@ -35,10 +35,12 @@ jobs:
           RESOURCE_GROUP="rg-taskGen-dev-weu"
           LOCATION="westeurope"
           TEMPLATE_FILE="main.bicep"
-
+          DEPLOYMENT_NAME="main-$(date +%s)"  # unique name using timestamp
+      
           az group create --name $RESOURCE_GROUP --location $LOCATION
-
+      
           az deployment group create \
+            --name $DEPLOYMENT_NAME \
             --resource-group $RESOURCE_GROUP \
             --template-file $TEMPLATE_FILE \
             --parameters main.bicepparam \
@@ -46,7 +48,6 @@ jobs:
               jwtSecret="${{ secrets.JWT_SECRET }}" \
               ddimitrPass="${{ secrets.ddimitr_dummy_password }}" \
               helloPass="${{ secrets.hello_dummy_password }}"
-
 
 
       # 1️⃣1️⃣ Trigger TS repo workflow
