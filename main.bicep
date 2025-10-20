@@ -117,7 +117,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
 resource jwtsecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: '${keyvault_name}/jwtsecret'
   properties: {
-    value: "${{ secrets.JWT_SECRET }}"
+    value: '${{ secrets.JWT_SECRET }}'
   }
   dependsOn: [
     keyvault
@@ -127,7 +127,7 @@ resource jwtsecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
 resource ddimitrpass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: '${keyvault_name}/ddimitrpass'
   properties: {
-    value: "${{ secrets.ddimitr_dummy_password }}"
+    value: '${{ secrets.ddimitr_dummy_password }}'
   }
   dependsOn: [
     keyvault
@@ -137,31 +137,12 @@ resource ddimitrpass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
 resource hellopass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: '${keyvault_name}/hellopass'
   properties: {
-    value: "${{ secrets.hello_dummy_password }}"
+    value: '${{ secrets.hello_dummy_password }}'
   }
   dependsOn: [
     keyvault
   ]
 }
-
-resource kvSecrets 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = [for secret in [
-  {
-    name: 'MySecret1'
-    value: 'secret-value-1'
-  }
-  {
-    name: 'MySecret2'
-    value: 'secret-value-2'
-  }
-]: {
-  name: '${keyVault.name}/${secret.name}'
-  properties: {
-    value: secret.value
-  }
-  dependsOn: [
-    keyVault
-  ]
-}]
 
 
 // Log Analytics
@@ -346,6 +327,7 @@ module appServiceModule './modules/app_service.bicep' = {
 
 output subnet_ids object = vnet.outputs.subnet_ids
 output storageTableId string = storageAccountTable.outputs.storageAccountId
+
 
 
 
