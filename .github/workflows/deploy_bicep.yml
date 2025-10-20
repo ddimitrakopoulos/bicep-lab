@@ -37,7 +37,7 @@ jobs:
           TEMPLATE_FILE="main.bicep"
 
           az group create --name $RESOURCE_GROUP --location $LOCATION
-
+          
           az deployment group create \
             --resource-group $RESOURCE_GROUP \
             --template-file $TEMPLATE_FILE \
@@ -46,8 +46,8 @@ jobs:
               jwtSecret="${{ secrets.JWT_SECRET }}" \
               ddimitrPass="${{ secrets.ddimitr_dummy_password }}" \
               helloPass="${{ secrets.hello_dummy_password }}" \
-            --verbose \
-            --mode Complete
+            --mode Incremental \
+            --verbose
 
       # 1️⃣1️⃣ Trigger TS repo workflow
       - name: Trigger TS repo deployment
