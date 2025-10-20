@@ -8,12 +8,6 @@ param location string
 @description('Name of the workload that will be deployed')
 param workload string
 
-@description('sku for the Static Web App')
-param web_app_sku string
-
-@description('Enable config file updates')
-param allowConfigUpdates bool
-
 @description('Repository branch (for GitHub integration).')
 param branch string 
 
@@ -25,12 +19,6 @@ param environment string
 
 @description('Name of the storage account for the table')
 param storageAccountTableName string 
-
-@description('Name of the storage account for the functions')
-param storageAccountFunctionName string 
-
-@description('Static Web App Name')
-param staticWebAppName string  
 
 @description('Log Workspace name')
 param log_workspace_name string 
@@ -65,18 +53,6 @@ param keyvault_enabled_for_template_deployment bool
 @description('Enable diagnostics settings for Key Vault')
 param keyvault_diagnostics_settings_enabled bool
 
-@description('Name for function app doing CRUD operations')
-param function_name_crud string 
-
-@description('Runtime stack for crud function (e.g., dotnet, node, python)')
-param function_runtime_crud string 
-
-@description('Name for function app doing Login operations')
-param function_name_login string
-
-@description('Runtime stack for login function (e.g., dotnet, node, python)')
-param function_runtime_login string
-
 @description('Private Endpoint name for Key Vault')
 param pe_keyvault_name string
 
@@ -88,64 +64,29 @@ param vnetName string = '${workload}-${environment}-vnet'
 @description('Address space for VNet')
 param addressPrefix string = '10.0.0.0/16'
 
-@description('Subnet configurations')
-param subnets array = [
-  {
-    name: 'default'
-    prefix: '10.0.1.0/24'
-  }
-  {
-    name: 'storage'
-    prefix: '10.0.2.0/24'
-  }
-  {
-    name: 'functions'
-    prefix: '10.0.3.0/24'
-  }
-  {
-    name: 'private-endpoints'
-    prefix: '10.0.4.0/24'
-  }
-]
-
 @description('Private Endpoint name for Storage Table')
 param pe_table_name string
 
 @description('virtual network name for private endpoints')
 param vnet_name string 
-///// MODULES /////
 
-// Static Web App
-module staticAppModule './modules/staticWebApp.bicep' = {
-  name: 'deployStaticWebApp'
-  params: {
-    name: staticWebAppName
-    sku: web_app_sku
-    allowConfigFileUpdates: allowConfigUpdates
-    location: location
-    repositoryUrl: repositoryUrl
-    branch: branch
-  }
-}
+@description('App Service name')
+param app_service_name string 
+
+@description('App Service Plan name')
+param app_service_plan_name string 
+
+@description('App Service SKU name')
+param app_service_sku_name string 
+
+
+///// MODULES /////
 
 // Storage Accounts
 module storageAccountTable 'modules/storageAccountTable.bicep' = {
   name: 'stg-table-${workload}-${environment}'
   params: {
     storageAccountName: storageAccountTableName
-    location: location
-    tags: {
-      workload: workload
-      environment: environment
-    }
-    allowPublicAccess: false   // make storage private
-  }
-}
-
-module storageAccountFunction 'modules/storageAccountFunction.bicep' = {
-  name: 'stg-fun${workload}-${environment}'
-  params: {
-    storageAccountName: storageAccountFunctionName
     location: location
     tags: {
       workload: workload
@@ -192,34 +133,6 @@ module table 'modules/tableStorage.bicep' = {
   }
 }
 
-// CRUD Function App
-module function_module_crud './modules/function.bicep' = {
-  name: 'deploy_crud_function-${workload}'
-  dependsOn: [ storageAccountFunction, vnet, staticAppModule ]
-  params: {
-    functionAppName: function_name_crud
-    storageAccountName: storageAccountFunctionName
-    runtime: function_runtime_crud
-    vnetIntegrationSubnetId: vnet.outputs.subnet_ids['functions']
-    enableEasyAuth: false        // disable Easy Auth
-    allowedCallerClientId: ''    // remove any restriction
-  }
-}
-
-// LOGIN Function App
-module function_module_login './modules/function.bicep' = {
-  name: 'deploy_login_function-${workload}'
-  dependsOn: [ storageAccountFunction, vnet, staticAppModule ]
-  params: {
-    functionAppName: function_name_login
-    storageAccountName: storageAccountFunctionName
-    runtime: function_runtime_login
-    vnetIntegrationSubnetId: vnet.outputs.subnet_ids['functions']
-    enableEasyAuth: false        // disable Easy Auth
-    allowedCallerClientId: ''    // remove any restriction
-  }
-}
-
 ///// NETWORK MODULES /////
 
 // Virtual Network
@@ -229,7 +142,6 @@ module vnet './modules/vnet.bicep' = {
     vnetName: vnetName
     location: location
     addressPrefix: addressPrefix
-    subnets: subnets
     tags: {
       workload: workload
       environment: environment
@@ -246,7 +158,7 @@ resource peStorageTable 'Microsoft.Network/privateEndpoints@2023-09-01' = {
   dependsOn: [storageAccountTable, vnet]
   properties: {
     subnet: {
-      id: vnet.outputs.subnet_ids['functions']
+      id: vnet.outputs.subnet_ids['private-endpoints']
     }
     privateLinkServiceConnections: [
       {
@@ -280,7 +192,7 @@ resource kvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
   location: location
   properties: {
     subnet: {
-      id: vnet.outputs.subnet_ids['functions']
+      id: vnet.outputs.subnet_ids['private-endpoints']
     }
     privateLinkServiceConnections: [
       {
@@ -345,11 +257,27 @@ resource dnsZoneLinkTable 'Microsoft.Network/privateDnsZones/virtualNetworkLinks
   }
 }
 
+// App Service (frontend + backend)
+module appServiceModule './modules/app_service.bicep' = {
+  name: 'deployAppService'
+  params: {
+    appServiceName: app_service_name
+    appServicePlanName: app_service_plan_name
+    skuName: app_service_sku_name
+    location: location
+    nodeVersion: '~20'
+    repositoryUrl: repositoryUrl
+    branch: branch
+    subnetId: vnet.outputs.subnet_ids['appservice']
+  }
+  dependsOn: [
+    keyvault
+    storageAccountTable
+  ]
+}
 
 ///// OUTPUTS /////
 
 output subnet_ids object = vnet.outputs.subnet_ids
 output storageTableId string = storageAccountTable.outputs.storageAccountId
-output storageFunctionId string = storageAccountFunction.outputs.storageAccountId
-output crudFunctionName string = function_module_crud.outputs.functionAppName
-output loginFunctionName string = function_module_login.outputs.functionAppName
+
