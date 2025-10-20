@@ -40,14 +40,14 @@ jobs:
           
           az deployment group create \
             --resource-group $RESOURCE_GROUP \
-            --template-file $TEMPLATE_FILE \
+            --template-file main.bicep \
             --parameters @main.bicepparam \
             --parameters \
               jwtSecret="${{ secrets.JWT_SECRET }}" \
               ddimitrPass="${{ secrets.ddimitr_dummy_password }}" \
               helloPass="${{ secrets.hello_dummy_password }}" \
-            --mode Incremental \
-            --verbose
+            --mode Incremental
+
 
       # 1️⃣1️⃣ Trigger TS repo workflow
       - name: Trigger TS repo deployment
