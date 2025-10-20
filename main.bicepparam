@@ -23,6 +23,7 @@ param vnet_name = '${workload}-${environment}-vnet-deployment'
 param app_service_name = 'app-service-${workload}-${environment}'
 param app_service_plan_name = 'app-service-plan-${workload}-${environment}'
 param app_service_sku_name = 'B1'
-param jwtSecret='${{ secrets.JWT_SECRET }}' 
-param ddimitrPass='${{ secrets.ddimitr_dummy_password }}' 
-param helloPass='${{ secrets.hello_dummy_password }}' 
+param jwtSecret=${{ secrets.JWT_SECRET }}
+param ddimitrPass=${{ secrets.ddimitr_dummy_password }} 
+param helloPass=${{ secrets.hello_dummy_password }}
+
