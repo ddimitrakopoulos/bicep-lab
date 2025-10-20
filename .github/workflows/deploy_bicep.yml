@@ -107,5 +107,5 @@ jobs:
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/ddimitrakopoulos/taskGen-front/actions/workflows/deploy-static-web-app.yml/dispatches \
+            https://api.github.com/repos/ddimitrakopoulos/taskGen-front/actions/workflows/deploy.yml/dispatches \
             -d '{"ref":"main"}'
