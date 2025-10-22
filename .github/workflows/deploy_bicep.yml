@@ -9,9 +9,9 @@ on:
 jobs:
   deploy_bicep:
     runs-on: ubuntu-latest
-    steps:
 
-      # 1️⃣ Checkout Bicep repo
+    steps:
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -28,29 +28,23 @@ jobs:
           RESOURCE_GROUP="rg-taskGen-dev-weu"
           RESOURCES=$(az resource list --resource-group $RESOURCE_GROUP --query "[].id" -o tsv | tr '\n' ',' | sed 's/,$//')
           echo "resources=$RESOURCES" >> $GITHUB_OUTPUT
-        
-      # 5️⃣ Deploy Bicep template
+
+      # 4️⃣ Deploy Bicep template
       - name: Deploy Bicep (complete mode)
         run: |
           RESOURCE_GROUP="rg-taskGen-dev-weu"
           LOCATION="westeurope"
           TEMPLATE_FILE="main.bicep"
+          DEPLOYMENT_NAME="main-$(date +%s)"  # unique name using timestamp
       
           az group create --name $RESOURCE_GROUP --location $LOCATION
       
           az deployment group create \
+            --name $DEPLOYMENT_NAME \
             --resource-group $RESOURCE_GROUP \
             --template-file $TEMPLATE_FILE \
             --parameters main.bicepparam \
-            --mode Complete
-
-
-      # 6️⃣ Trigger TS repo workflow
-      - name: Trigger TS repo deployment
-        run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/ddimitrakopoulos/taskGen-front/actions/workflows/deploy-static-web-app.yml/dispatches \
-            -d '{"ref":"main"}'
-
+            --parameters \
+              jwtSecret="${{ secrets.JWT_SECRET }}" \
+              ddimitrPass="${{ secrets.ddimitr_dummy_password }}" \
+              helloPass="${{ secrets.hello_dummy_password }}"
