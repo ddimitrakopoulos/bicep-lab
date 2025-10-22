@@ -35,9 +35,6 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
   name: appServiceName
   location: location
   kind: 'app,linux'
-  identity: {
-    type: 'SystemAssigned'
-  }
   properties: {
     serverFarmId: appServicePlan.id
     httpsOnly: true
@@ -74,4 +71,3 @@ resource vnetIntegration 'Microsoft.Web/sites/networkConfig@2022-09-01' = {
 // Outputs (no URL or source control info)
 output appServiceId string = webApp.id
 output appServicePlanId string = appServicePlan.id
-output appServicePrincipalId string = webApp.identity.principalId

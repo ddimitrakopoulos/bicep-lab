@@ -304,19 +304,6 @@ module appServiceModule './modules/app_service.bicep' = {
   ]
 }
 
-resource storageTableRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountTable.name, appServiceModule.name, 'StorageTableContributor')
-  properties: {
-    principalId: appServiceModule.outputs.appServicePrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3') 
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    storageAccountTable
-    appServiceModule
-  ]
-}
-
 ///// OUTPUTS /////
 
 output subnet_ids object = vnet.outputs.subnet_ids
