@@ -48,13 +48,3 @@ jobs:
               jwtSecret="${{ secrets.JWT_SECRET }}" \
               ddimitrPass="${{ secrets.ddimitr_dummy_password }}" \
               helloPass="${{ secrets.hello_dummy_password }}"
-
-
-      # 1️⃣1️⃣ Trigger TS repo workflow
-      - name: Trigger TS repo deployment
-        run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/ddimitrakopoulos/taskGen-front/actions/workflows/deploy.yml/dispatches \
-            -d '{"ref":"main"}'
