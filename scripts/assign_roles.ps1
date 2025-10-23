@@ -4,7 +4,7 @@ param(
     [string]$ResourceGroup
 )
 
-# Get the principal ID of the App Service
+# Get the App Service's principal (Managed Identity) ID
 $PrincipalId = az webapp identity show `
     --name $AppServiceName `
     --resource-group $ResourceGroup `
@@ -13,11 +13,18 @@ $PrincipalId = az webapp identity show `
 
 Write-Host "Principal ID of $AppServiceName is $PrincipalId"
 
-# Assign Key Vault permissions
-az keyvault set-policy `
+# Get the Key Vault resource ID
+$KeyVaultId = az keyvault show `
     --name $KeyVaultName `
-    --object-id $PrincipalId `
-    --secret-permissions get list `
-    --key-permissions get list
+    --query id `
+    -o tsv
 
-Write-Host "Key Vault policy assigned successfully"
+Write-Host "Key Vault resource ID is $KeyVaultId"
+
+# Assign 'Key Vault Secrets User' role to the App Service
+az role assignment create `
+    --assignee $PrincipalId `
+    --role "Key Vault Secrets User" `
+    --scope $KeyVaultId
+
+Write-Host "RBAC role 'Key Vault Secrets User' assigned to $AppServiceName successfully."
