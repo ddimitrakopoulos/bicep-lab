@@ -1,32 +1,24 @@
-param(
-    [string]$KeyVaultName,
-    [string]$AppServiceName,
-    [string]$ResourceGroup
-)
+name: Create Roles
 
-# Get the App Service principal ID
-$PrincipalId = az webapp identity show `
-    --name $AppServiceName `
-    --resource-group $ResourceGroup `
-    --query principalId `
-    -o tsv
+on:
+  workflow_dispatch:
 
-Write-Host "Principal ID of $AppServiceName is $PrincipalId"
+jobs:
+  assignment:
+    runs-on: ubuntu-latest
 
-# Get the Key Vault resource ID
-$KeyVaultId = az keyvault show `
-    --name $KeyVaultName `
-    --resource-group $ResourceGroup `
-    --query id `
-    -o tsv
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-Write-Host "Key Vault resource ID is $KeyVaultId"
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-# Assign 'Key Vault Secrets User' role using object ID directly
-az role assignment create `
-    --assignee-object-id $PrincipalId `
-    --role "Key Vault Secrets User" `
-    --scope $KeyVaultId `
-    --assignee-principal-type ServicePrincipal
-
-Write-Host "RBAC role 'Key Vault Secrets User' assigned to $AppServiceName successfully."
+      - name: Assign Key Vault RBAC Role
+        shell: pwsh
+        run: ./scripts/assign_roles.ps1 `
+              -KeyVaultName "kv-taskGen-2" `
+              -AppServiceName "app-service-taskGen-dev" `
+              -ResourceGroup "rg-taskGen-dev-weu"
