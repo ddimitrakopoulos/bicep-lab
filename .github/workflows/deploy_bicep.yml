@@ -4,7 +4,12 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
+    paths:
+      - 'modules/**'        
+      - 'main.bicep'        
+      - 'main.bicepparam'    
+      - '.github/workflows/deploy_bicep.yml'  
+  workflow_dispatch: {}
 
 jobs:
   deploy_bicep:
