@@ -1,0 +1,14 @@
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Assign Key Vault Policy
+        run: pwsh ./scripts/assign-kv-policy.ps1 -KeyVaultName "kv-taskGen-dev" -AppServiceName "app-service-taskGen-dev" -ResourceGroup "rg-taskGen-dev-weu"
