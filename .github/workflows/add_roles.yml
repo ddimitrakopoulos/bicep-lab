@@ -16,4 +16,4 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Assign Key Vault Policy
-        run: pwsh ./scripts/assign-kv-policy.ps1 -KeyVaultName "kv-taskGen-dev" -AppServiceName "app-service-taskGen-dev" -ResourceGroup "rg-taskGen-dev-weu"
+        run: pwsh ./scripts/assign_roles.ps1 -KeyVaultName "kv-taskGen-2" -AppServiceName "app-service-taskGen-dev" -ResourceGroup "rg-taskGen-dev-weu"
