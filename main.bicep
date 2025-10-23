@@ -308,4 +308,5 @@ module appServiceModule './modules/app_service.bicep' = {
 
 output subnet_ids object = vnet.outputs.subnet_ids
 output storageTableId string = storageAccountTable.outputs.storageAccountId
+output appServicePrincipalId string = appServiceModule.outputs.appServicePrincipalId
 
