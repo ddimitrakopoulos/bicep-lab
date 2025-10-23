@@ -48,3 +48,70 @@ jobs:
               jwtSecret="${{ secrets.JWT_SECRET }}" \
               ddimitrPass="${{ secrets.ddimitr_dummy_password }}" \
               helloPass="${{ secrets.hello_dummy_password }}"
+              
+      # 5️⃣ Capture App Service principal ID from previous deployment
+      - name: Get App Service principal ID
+        id: get_principal
+        run: |
+          RESOURCE_GROUP="rg-taskGen-dev-weu"
+          DEPLOYMENT_NAME=$(az deployment group list --resource-group $RESOURCE_GROUP --query "[?contains(name,'main-')]|[-1].name" -o tsv)
+          
+          APP_PRINCIPAL_ID=$(az deployment group show \
+            --resource-group $RESOURCE_GROUP \
+            --name $DEPLOYMENT_NAME \
+            --query "properties.outputs.appServicePrincipalId.value" -o tsv)
+          
+          echo "app_principal_id=$APP_PRINCIPAL_ID" >> $GITHUB_OUTPUT
+          
+      # 6️⃣ Deploy role assignments using AZURE_CREDENTIALS
+      - name: Deploy Role Assignments
+        run: |
+          RESOURCE_GROUP="rg-taskGen-dev-weu"
+          ROLES_DEPLOYMENT_NAME="roles-$(date +%s)"
+
+          # Extract subscription ID from AZURE_CREDENTIALS JSON
+          SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r '.subscriptionId')
+
+          # Get the App Service principal ID from previous step
+          APP_PRINCIPAL_ID="${{ steps.get_principal.outputs.app_principal_id }}"
+
+          # Build role assignments JSON dynamically
+          ROLE_ASSIGNMENTS_JSON=$(jq -n --arg pid "$APP_PRINCIPAL_ID" --arg sub "$SUBSCRIPTION_ID" '{
+            "roleAssignments": {
+              "value": [
+                {
+                  "principalId": $pid,
+                  "roleDefinitionId": "/subscriptions/\($sub)/resourceGroups/rg-taskGen-dev-weu/providers/Microsoft.Authorization/roleDefinitions/21090545-7ca7-4776-b22c-e363652d74d2"
+                },
+                {
+                  "principalId": $pid,
+                  "roleDefinitionId": "/subscriptions/\($sub)/resourceGroups/rg-taskGen-dev-weu/providers/Microsoft.Authorization/roleDefinitions/0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3"
+                }
+              ]
+            }
+          }')
+
+          # Deploy roles using idempotent roles.bicep
+          set +e
+          az deployment group create \
+            --name $ROLES_DEPLOYMENT_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --template-file roles.bicep \
+            --parameters "$ROLE_ASSIGNMENTS_JSON"
+          EXIT_CODE=$?
+          set -e
+
+          # Handle "already exists" gracefully
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "🔍 Checking if role assignments already exist..."
+            EXISTS=$(az role assignment list --assignee $APP_PRINCIPAL_ID --output tsv | grep -E "21090545|0a9a7e1f")
+            if [ -n "$EXISTS" ]; then
+              echo "✅ Roles already exist — continuing."
+            else
+              echo "❌ Role assignment failed for a real reason."
+              exit 1
+            fi
+          else
+            echo "✅ Role assignments deployed successfully."
+          fi
+
