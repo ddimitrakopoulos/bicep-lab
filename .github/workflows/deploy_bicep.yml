@@ -63,11 +63,13 @@ jobs:
           fi
 
           # Get App Service principal ID from main deployment output
-          DEPLOYMENT_NAME=$(az deployment group list --resource-group $RESOURCE_GROUP --query "[?contains(name,'main-')]|[-1].name" -o tsv)
-          APP_PRINCIPAL_ID=$(az deployment group show \
-            --resource-group $RESOURCE_GROUP \
-            --name $DEPLOYMENT_NAME \
-            --query "properties.outputs.appServicePrincipalId.value" -o tsv)
+
+          PRINCIPAL_ID=$(az webapp identity show \
+            --name app-service-taskGen-dev \
+            --resource-group rg-taskGen-dev-weu \
+            --query principalId -o tsv)
+          echo "PRINCIPAL_ID=$PRINCIPAL_ID" >> $GITHUB_ENV
+
 
           if [ -z "$APP_PRINCIPAL_ID" ]; then
             echo "❌ App Service principal ID is empty. Cannot assign roles."
