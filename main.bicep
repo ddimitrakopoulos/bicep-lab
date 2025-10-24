@@ -307,6 +307,33 @@ resource dnsZoneLinkTable 'Microsoft.Network/privateDnsZones/virtualNetworkLinks
   ]
 }
 
+// DNS A Record Sets for Private Endpoints
+resource dnsARecordVault 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
+  name: keyvault_name
+  parent: dnsZoneVault
+  properties: {
+    ttl: 300
+    aRecords: [
+      {
+        ipv4Address: kvPrivateEndpoint.properties.customDnsConfigs[0].ipAddresses[0]
+      }
+    ]
+  }
+}
+
+resource dnsARecordTable 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
+  name: storageAccountTableName
+  parent: dnsZoneTable
+  properties: {
+    ttl: 300
+    aRecords: [
+      {
+        ipv4Address: peStorageTable.properties.customDnsConfigs[0].ipAddresses[0]
+      }
+    ]
+  }
+}
+
 // App Service (frontend + backend)
 module appServiceModule './modules/app_service.bicep' = {
   name: 'deployAppService'
