@@ -185,7 +185,12 @@ module vnet './modules/vnet.bicep' = {
 resource peStorageTable 'Microsoft.Network/privateEndpoints@2023-09-01' = {
   name: pe_table_name
   location: location
-  dependsOn: [storageAccountTable, vnet]
+  dependsOn: [
+    storageAccountTable
+    vnet
+    dnsZoneTable
+    dnsZoneLinkTable
+  ]
   properties: {
     subnet: {
       id: vnet.outputs.subnet_ids['private-endpoints']
@@ -220,6 +225,12 @@ resource peStorageTable 'Microsoft.Network/privateEndpoints@2023-09-01' = {
 resource kvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
   name: pe_keyvault_name
   location: location
+  dependsOn: [
+    keyvault
+    vnet
+    dnsZoneVault
+    dnsZoneLinkVault
+  ]
   properties: {
     subnet: {
       id: vnet.outputs.subnet_ids['private-endpoints']
@@ -273,6 +284,10 @@ resource dnsZoneLinkVault 'Microsoft.Network/privateDnsZones/virtualNetworkLinks
     }
     registrationEnabled: false
   }
+  dependsOn: [
+    dnsZoneVault
+    vnet
+  ]
 }
 
 resource dnsZoneLinkTable 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
@@ -285,6 +300,10 @@ resource dnsZoneLinkTable 'Microsoft.Network/privateDnsZones/virtualNetworkLinks
     }
     registrationEnabled: false
   }
+  dependsOn: [
+    dnsZoneTable
+    vnet
+  ]
 }
 
 // App Service (frontend + backend)
