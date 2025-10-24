@@ -89,7 +89,8 @@ module storageAccountTable 'modules/storageAccountTable.bicep' = {
       workload: workload
       environment: environment
     }
-    allowPublicAccess: false   // make storage private
+    allowBlobPublicAccess: false   // disable public blob access
+    publicNetworkAccess: 'Disabled'   // disable public network access entirely
   }
 }
 
