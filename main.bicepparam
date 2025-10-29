@@ -19,7 +19,7 @@ param diagnosticsEnabled = true
 // STORAGE ACCOUNT PARAMETERS
 //============================================================================
 param storageAccountName = 'st${workloadName}${environment}' // Actual name will include uniqueString at deployment
-param storageTableName = 'table-${workloadName}-${environment}'
+param storageTableName = 'table${workloadName}${environment}'
 
 //============================================================================
 // KEY VAULT PARAMETERS
