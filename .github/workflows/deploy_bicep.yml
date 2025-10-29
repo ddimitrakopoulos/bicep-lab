@@ -51,9 +51,9 @@ jobs:
             --template-file $TEMPLATE_FILE \
             --parameters main.bicepparam \
             --parameters \
-              jwtSecret="${{ secrets.JWT_SECRET }}" \
-              ddimitrPass="${{ secrets.ddimitr_dummy_password }}" \
-              helloPass="${{ secrets.hello_dummy_password }}"
+              jwtsecret="${{ secrets.JWT_SECRET }}" \
+              ddimitrpass="${{ secrets.ddimitr_dummy_password }}" \
+              hellopass="${{ secrets.hello_dummy_password }}"
 
       # 5️⃣ Deploy roles/roles.bicep
       - name: Deploy roles Bicep
