@@ -4,7 +4,13 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
+    paths:
+      - 'modules/**'        
+      - 'main.bicep'        
+      - 'main.bicepparam'    
+      - 'roles/**'          
+      - '.github/workflows/deploy_bicep.yml'
+  workflow_dispatch: {}
 
 jobs:
   deploy_bicep:
@@ -29,16 +35,16 @@ jobs:
           RESOURCES=$(az resource list --resource-group $RESOURCE_GROUP --query "[].id" -o tsv | tr '\n' ',' | sed 's/,$//')
           echo "resources=$RESOURCES" >> $GITHUB_OUTPUT
 
-      # 4️⃣ Deploy Bicep template
-      - name: Deploy Bicep (complete mode)
+      # 4️⃣ Deploy main.bicep
+      - name: Deploy main Bicep (complete mode)
         run: |
           RESOURCE_GROUP="rg-taskGen-dev-weu"
           LOCATION="westeurope"
           TEMPLATE_FILE="main.bicep"
           DEPLOYMENT_NAME="main-$(date +%s)"  # unique name using timestamp
-      
+
           az group create --name $RESOURCE_GROUP --location $LOCATION
-      
+
           az deployment group create \
             --name $DEPLOYMENT_NAME \
             --resource-group $RESOURCE_GROUP \
@@ -48,3 +54,17 @@ jobs:
               jwtSecret="${{ secrets.JWT_SECRET }}" \
               ddimitrPass="${{ secrets.ddimitr_dummy_password }}" \
               helloPass="${{ secrets.hello_dummy_password }}"
+
+      # 5️⃣ Deploy roles/roles.bicep
+      - name: Deploy roles Bicep
+        run: |
+          RESOURCE_GROUP="rg-taskGen-dev-weu"
+          TEMPLATE_FILE="roles/roles.bicep"
+          PARAMS_FILE="roles/roles.bicepparam"
+          DEPLOYMENT_NAME="roles-$(date +%s)"
+
+          az deployment group create \
+            --name $DEPLOYMENT_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --template-file $TEMPLATE_FILE \
+            --parameters $PARAMS_FILE

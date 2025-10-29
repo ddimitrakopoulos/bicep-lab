@@ -2,8 +2,6 @@ using 'main.bicep'
 
 param workload = 'taskGen'
 param location = 'westeurope'
-//param branch = 'main'
-//param repositoryUrl = 'https://github.com/ddimitrakopoulos/taskGen-front'
 param environment = 'dev'
 param storageAccountTableName = 'storageacctable${toLower(workload)}'  
 param log_workspace_name = 'log-${workload}' 

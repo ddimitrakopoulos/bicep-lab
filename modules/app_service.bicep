@@ -75,3 +75,4 @@ resource vnetIntegration 'Microsoft.Web/sites/networkConfig@2022-09-01' = {
 output appServiceId string = webApp.id
 output appServicePlanId string = appServicePlan.id
 output appServicePrincipalId string = webApp.identity.principalId
+

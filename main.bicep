@@ -89,7 +89,8 @@ module storageAccountTable 'modules/storageAccountTable.bicep' = {
       workload: workload
       environment: environment
     }
-    allowPublicAccess: false   // make storage private
+    allowBlobPublicAccess: false   // disable public blob access
+    publicNetworkAccess: 'Disabled'   // disable public network access entirely
   }
 }
 
@@ -185,7 +186,12 @@ module vnet './modules/vnet.bicep' = {
 resource peStorageTable 'Microsoft.Network/privateEndpoints@2023-09-01' = {
   name: pe_table_name
   location: location
-  dependsOn: [storageAccountTable, vnet]
+  dependsOn: [
+    storageAccountTable
+    vnet
+    dnsZoneTable
+    dnsZoneLinkTable
+  ]
   properties: {
     subnet: {
       id: vnet.outputs.subnet_ids['private-endpoints']
@@ -220,6 +226,12 @@ resource peStorageTable 'Microsoft.Network/privateEndpoints@2023-09-01' = {
 resource kvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
   name: pe_keyvault_name
   location: location
+  dependsOn: [
+    keyvault
+    vnet
+    dnsZoneVault
+    dnsZoneLinkVault
+  ]
   properties: {
     subnet: {
       id: vnet.outputs.subnet_ids['private-endpoints']
@@ -273,6 +285,10 @@ resource dnsZoneLinkVault 'Microsoft.Network/privateDnsZones/virtualNetworkLinks
     }
     registrationEnabled: false
   }
+  dependsOn: [
+    dnsZoneVault
+    vnet
+  ]
 }
 
 resource dnsZoneLinkTable 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
@@ -284,6 +300,37 @@ resource dnsZoneLinkTable 'Microsoft.Network/privateDnsZones/virtualNetworkLinks
       id: vnet.outputs.vnet_id
     }
     registrationEnabled: false
+  }
+  dependsOn: [
+    dnsZoneTable
+    vnet
+  ]
+}
+
+// DNS A Record Sets for Private Endpoints
+resource dnsARecordVault 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
+  name: keyvault_name
+  parent: dnsZoneVault
+  properties: {
+    ttl: 300
+    aRecords: [
+      {
+        ipv4Address: kvPrivateEndpoint.properties.customDnsConfigs[0].ipAddresses[0]
+      }
+    ]
+  }
+}
+
+resource dnsARecordTable 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
+  name: storageAccountTableName
+  parent: dnsZoneTable
+  properties: {
+    ttl: 300
+    aRecords: [
+      {
+        ipv4Address: peStorageTable.properties.customDnsConfigs[0].ipAddresses[0]
+      }
+    ]
   }
 }
 
@@ -304,21 +351,9 @@ module appServiceModule './modules/app_service.bicep' = {
   ]
 }
 
-resource storageTableRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountTable.name, appServiceModule.name, 'StorageTableContributor')
-  properties: {
-    principalId: appServiceModule.outputs.appServicePrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3') 
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    storageAccountTable
-    appServiceModule
-  ]
-}
-
 ///// OUTPUTS /////
 
 output subnet_ids object = vnet.outputs.subnet_ids
 output storageTableId string = storageAccountTable.outputs.storageAccountId
+output appServicePrincipalId string = appServiceModule.outputs.appServicePrincipalId
 
