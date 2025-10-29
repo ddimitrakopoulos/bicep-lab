@@ -52,6 +52,6 @@ param appServiceSkuName = 'B1'
 //============================================================================
 // SECRETS (Provide values at deployment time)
 //============================================================================
-param jwtSecret = ''
-param ddimitrPassword = ''
-param helloPassword = ''
+param jwtsecret = ''
+param ddimitrpass = ''
+param hellopass = ''

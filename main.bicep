@@ -77,15 +77,15 @@ param appServiceSkuName string
 // Secret parameters
 @secure()
 @description('JWT secret for application authentication')
-param jwtSecret string
+param jwtsecret string
 
 @secure()
 @description('Password for ddimitr user')
-param ddimitrPassword string
+param ddimitrpass string
 
 @secure()
 @description('Password for hello user')
-param helloPassword string
+param hellopass string
 
 
 //============================================================================
@@ -157,7 +157,7 @@ module keyVaultModule 'modules/keyVault.bicep' = {
 resource jwtSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: '${keyVaultName}/jwt-secret'
   properties: {
-    value: jwtSecret
+    value: jwtsecret
   }
   dependsOn: [
     keyVaultModule
@@ -167,7 +167,7 @@ resource jwtSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
 resource ddimitrPasswordResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: '${keyVaultName}/ddimitr-password'
   properties: {
-    value: ddimitrPassword
+    value: ddimitrpass
   }
   dependsOn: [
     keyVaultModule
@@ -177,7 +177,7 @@ resource ddimitrPasswordResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' 
 resource helloPasswordResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: '${keyVaultName}/hello-password'
   properties: {
-    value: helloPassword
+    value: hellopass
   }
   dependsOn: [
     keyVaultModule
