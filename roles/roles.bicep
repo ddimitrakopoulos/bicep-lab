@@ -1,69 +1,72 @@
 targetScope = 'resourceGroup'
 
+//============================================================================
+// PARAMETERS
+//============================================================================
+
 @description('Name of the existing Key Vault')
 param keyVaultName string
 
-@description('Name of the existing Web App')
-param webAppName string
+@description('Name of the existing App Service web application')
+param appServiceName string
 
 @description('Name of the existing Storage Account')
 param storageAccountName string
 
-@description('Workload identifier')
-param workload string
+//============================================================================
+// EXISTING RESOURCES
+//============================================================================
 
-@description('Environment (e.g., dev, test, prod)')
-param environment string
-
-// ─────────────────────────────────────────────────────────────
-// Existing resources
-// ─────────────────────────────────────────────────────────────
-
-// Existing Key Vault
-resource existingKeyVault 'Microsoft.KeyVault/vaults@2024-04-01-preview' existing = {
+// Reference to existing Key Vault
+resource keyVaultResource 'Microsoft.KeyVault/vaults@2024-04-01-preview' existing = {
   name: keyVaultName
 }
 
-// Existing Web App
-resource existingWebApp 'Microsoft.Web/sites@2023-12-01' existing = {
-  name: webAppName
+// Reference to existing App Service
+resource appServiceResource 'Microsoft.Web/sites@2023-12-01' existing = {
+  name: appServiceName
 }
 
-// Existing Storage Account
-resource existingStorage 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
+// Reference to existing Storage Account
+resource storageAccountResource 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
   name: storageAccountName
 }
 
-// ─────────────────────────────────────────────────────────────
-// Role Assignments
-// ─────────────────────────────────────────────────────────────
+//============================================================================
+// ROLE ASSIGNMENTS
+//============================================================================
 
-// Key Vault Secrets User
-resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid('Keyvault Secret User', existingWebApp.name, existingKeyVault.name)
-  scope: existingKeyVault
-  location: resourceGroup().location
+// Assign Key Vault Secrets User role to App Service managed identity
+resource keyVaultSecretsUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid('KeyVault-SecretsUser', appServiceResource.name, keyVaultResource.name)
+  scope: keyVaultResource
   properties: {
     roleDefinitionId: subscriptionResourceId(
       'Microsoft.Authorization/roleDefinitions',
-      '4633458b-17de-408a-b874-0445c86b69e6' 
+      '4633458b-17de-408a-b874-0445c86b69e6' // Key Vault Secrets User
     )
-    principalId: existingWebApp.identity.principalId
+    principalId: appServiceResource.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
-// Storage Table Data Contributor
-resource storageTableRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid('Storage Table Data Contributor', existingWebApp.name, existingStorage.name)
-  scope: existingStorage
-  location: resourceGroup().location
+// Assign Storage Table Data Contributor role to App Service managed identity
+resource storageTableDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid('Storage-TableDataContributor', appServiceResource.name, storageAccountResource.name)
+  scope: storageAccountResource
   properties: {
     roleDefinitionId: subscriptionResourceId(
       'Microsoft.Authorization/roleDefinitions',
-      '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3' 
+      '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3' // Storage Table Data Contributor
     )
-    principalId: existingWebApp.identity.principalId
+    principalId: appServiceResource.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }
+
+//============================================================================
+// OUTPUTS
+//============================================================================
+
+output keyVaultRoleAssignmentId string = keyVaultSecretsUserRoleAssignment.id
+output storageRoleAssignmentId string = storageTableDataContributorRoleAssignment.id

@@ -1,359 +1,319 @@
 targetScope = 'resourceGroup'
 
-///// PARAMETERS /////
+//============================================================================
+// PARAMETERS
+//============================================================================
 
-@description('Azure region used for the deployment of all resources')
+// Core deployment parameters
+@description('Azure region where all resources will be deployed')
 param location string
 
-@description('Name of the workload that will be deployed')
-param workload string
+@description('Name of the workload used as naming prefix')
+param workloadName string
 
-@description('Environment')
-param environment string 
+@description('Environment designation (dev, test, prod)')
+param environment string
 
-@description('Name of the storage account for the table')
-param storageAccountTableName string 
+// Log Analytics workspace parameters
+@description('Name of the Log Analytics workspace')
+param logAnalyticsWorkspaceName string
 
-@description('Log Workspace name')
-param log_workspace_name string 
+@description('SKU for the Log Analytics workspace')
+param logAnalyticsWorkspaceSku string
 
-@description('Key Vault name')
-param keyvault_name string 
+@description('Number of days to retain data in the Log Analytics workspace')
+param logAnalyticsRetentionInDays int
 
-@description('Table name for Table Storage')
-param table_name string 
+@description('Enable diagnostic settings for resources')
+param diagnosticsEnabled bool
 
-@description('Log Analytics Workspace SKU')
-param log_workspace_sku string 
+// Storage Account parameters
+@description('Name of the storage account for table storage')
+param storageAccountName string
 
-@description('Number of days to retain data in the Log Analytics Workspace')
-param retention_days int
+@description('Name of the storage table')
+param storageTableName string
 
-@description('Enable diagnostics settings for resources')
-param log_workspace_diagnostics_settings_enabled bool 
+// Key Vault parameters
+@description('Name of the Key Vault')
+param keyVaultName string
 
-@description('Key Vault SKU name')
-param keyvault_sku_name string
+@description('SKU name for the Key Vault')
+param keyVaultSku string
 
-@description('Enable soft delete for Key Vault')
-param keyvault_soft_delete_enabled bool
+@description('Enable soft delete functionality for Key Vault')
+param keyVaultSoftDeleteEnabled bool
 
 @description('Enable purge protection for Key Vault')
-param keyvault_purge_protection_enabled bool
+param keyVaultPurgeProtectionEnabled bool
 
-@description('Enable template deployment access to Key Vault')
-param keyvault_enabled_for_template_deployment bool
+@description('Enable Azure Resource Manager template deployment access to Key Vault')
+param keyVaultEnabledForTemplateDeployment bool
 
-@description('Enable diagnostics settings for Key Vault')
-param keyvault_diagnostics_settings_enabled bool
+// Network parameters
+@description('Name of the virtual network')
+param virtualNetworkName string
 
-@description('Private Endpoint name for Key Vault')
-param pe_keyvault_name string
+@description('Address space for the virtual network')
+param virtualNetworkAddressPrefix string
 
-///// NETWORK PARAMETERS /////
+// Private Endpoint parameters
+@description('Name of the private endpoint for storage table')
+param storageTablePrivateEndpointName string
 
-@description('Virtual Network name')
-param vnetName string = '${workload}-${environment}-vnet'
+@description('Name of the private endpoint for Key Vault')
+param keyVaultPrivateEndpointName string
 
-@description('Address space for VNet')
-param addressPrefix string = '10.0.0.0/16'
+// App Service parameters
+@description('Name of the App Service web application')
+param appServiceName string
 
-@description('Private Endpoint name for Storage Table')
-param pe_table_name string
+@description('Name of the App Service hosting plan')
+param appServicePlanName string
 
-@description('virtual network name for private endpoints')
-param vnet_name string 
+@description('SKU name for the App Service hosting plan')
+param appServiceSkuName string
 
-@description('App Service name')
-param app_service_name string 
-
-@description('App Service Plan name')
-param app_service_plan_name string 
-
-@description('App Service SKU name')
-param app_service_sku_name string 
-
+// Secret parameters
+@secure()
+@description('JWT secret for application authentication')
 param jwtSecret string
-param ddimitrPass string
-param helloPass string
 
-///// MODULES /////
+@secure()
+@description('Password for ddimitr user')
+param ddimitrPassword string
 
-// Storage Accounts
-module storageAccountTable 'modules/storageAccountTable.bicep' = {
-  name: 'stg-table-${workload}-${environment}'
+@secure()
+@description('Password for hello user')
+param helloPassword string
+
+
+//============================================================================
+// INFRASTRUCTURE MODULES
+//============================================================================
+
+// Log Analytics workspace (deployed first for diagnostics)
+module logAnalyticsWorkspaceModule 'modules/logAnalyticsWorkspace.bicep' = {
   params: {
-    storageAccountName: storageAccountTableName
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
     location: location
-    tags: {
-      workload: workload
-      environment: environment
-    }
-    allowBlobPublicAccess: false   // disable public blob access
-    publicNetworkAccess: 'Disabled'   // disable public network access entirely
+    skuName: logAnalyticsWorkspaceSku
+    retentionInDays: logAnalyticsRetentionInDays
+    diagnosticsEnabled: diagnosticsEnabled
   }
 }
 
-// Log Analytics
-module log_workspace 'modules/log_workspace.bicep' = {
-  name: 'log-workspace-deployment'
+// Virtual Network
+module virtualNetworkModule 'modules/virtualNetwork.bicep' = {
   params: {
-    name: log_workspace_name
+    virtualNetworkName: virtualNetworkName
     location: location
-    sku: log_workspace_sku
-    retention_days: retention_days
-    diagnostics_settings_enabled: log_workspace_diagnostics_settings_enabled
+    addressPrefix: virtualNetworkAddressPrefix
+    tags: {
+      workload: workloadName
+      environment: environment
+    }
+  }
+}
+
+// Storage Account for table storage
+module storageAccountModule 'modules/storageAccount.bicep' = {
+  params: {
+    storageAccountName: storageAccountName
+    location: location
+    tags: {
+      workload: workloadName
+      environment: environment
+    }
+    allowBlobPublicAccess: false   
+    publicNetworkAccess: 'Disabled'   
+  }
+}
+
+// Storage Table (depends on Storage Account)
+module storageTableModule 'modules/storageTable.bicep' = {
+  dependsOn: [ storageAccountModule ]
+  params: {
+    storageAccountName: storageAccountName
+    storageTableName: storageTableName
   }
 }
 
 // Key Vault
-module keyvault 'modules/keyvault.bicep' = {
-  name: 'keyvault-deployment'
+module keyVaultModule 'modules/keyVault.bicep' = {
   params: {
-    name: keyvault_name
+    keyVaultName: keyVaultName
     location: location
-    sku_name: keyvault_sku_name
-    soft_delete_enabled: keyvault_soft_delete_enabled
-    purge_protection_enabled: keyvault_purge_protection_enabled
-    enabled_for_template_deployment: keyvault_enabled_for_template_deployment
-    diagnostics_settings_enabled: keyvault_diagnostics_settings_enabled
-    log_workspace_id: log_workspace.outputs.log_workspace_id
+    skuName: keyVaultSku
+    softDeleteEnabled: keyVaultSoftDeleteEnabled
+    purgeProtectionEnabled: keyVaultPurgeProtectionEnabled
+    enabledForTemplateDeployment: keyVaultEnabledForTemplateDeployment
+    diagnosticsEnabled: diagnosticsEnabled
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceModule.outputs.log_workspace_id
   }
 }
 
-
-
-
-resource jwtsecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  name: '${keyvault_name}/jwtsecret'
+// Key Vault Secrets
+resource jwtSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  name: '${keyVaultName}/jwt-secret'
   properties: {
     value: jwtSecret
   }
   dependsOn: [
-    keyvault
+    keyVaultModule
   ]
 }
 
-resource ddimitrpass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  name: '${keyvault_name}/ddimitrpass'
+resource ddimitrPasswordResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  name: '${keyVaultName}/ddimitr-password'
   properties: {
-    value: ddimitrPass
+    value: ddimitrPassword
   }
   dependsOn: [
-    keyvault
+    keyVaultModule
   ]
 }
 
-resource hellopass 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  name: '${keyvault_name}/hellopass'
+resource helloPasswordResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  name: '${keyVaultName}/hello-password'
   properties: {
-    value: helloPass
+    value: helloPassword
   }
   dependsOn: [
-    keyvault
+    keyVaultModule
   ]
 }
 
-// Table Storage
-module table 'modules/tableStorage.bicep' = {
-  name: 'createTable-${workload}'
-  dependsOn: [ storageAccountTable ]
+// App Service web application
+module appServiceModule 'modules/appService.bicep' = {
   params: {
-    storageAccountName: storageAccountTableName
-    tableName: table_name
-  }
-}
-
-///// NETWORK MODULES /////
-
-// Virtual Network
-module vnet './modules/vnet.bicep' = {
-  name: vnet_name
-  params: {
-    vnetName: vnetName
+    appServiceName: appServiceName
+    appServicePlanName: appServicePlanName
+    appServicePlanSkuName: appServiceSkuName
     location: location
-    addressPrefix: addressPrefix
-    tags: {
-      workload: workload
-      environment: environment
+    nodeJsVersion: '~20'
+    subnetId: virtualNetworkModule.outputs.subnet_ids.appservice
+  }
+  dependsOn: [
+    keyVaultModule
+    storageAccountModule
+  ]
+}
+
+//============================================================================
+// PRIVATE NETWORKING
+//============================================================================
+
+// Private DNS zones for private endpoints
+resource privateDnsZoneVault 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.vaultcore.azure.net'
+  location: 'global'
+}
+
+resource privateDnsZoneTable 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.table${az.environment().suffixes.storage}'
+  location: 'global'
+}
+
+// Link DNS zones to virtual network
+resource privateDnsZoneVaultVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  name: 'vault-vnet-link'
+  parent: privateDnsZoneVault
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: virtualNetworkModule.outputs.vnet_id
     }
+    registrationEnabled: false
   }
 }
 
-///// PRIVATE ENDPOINT MODULES /////
+resource privateDnsZoneTableVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  name: 'table-vnet-link'
+  parent: privateDnsZoneTable
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: virtualNetworkModule.outputs.vnet_id
+    }
+    registrationEnabled: false
+  }
+}
 
-
-resource peStorageTable 'Microsoft.Network/privateEndpoints@2023-09-01' = {
-  name: pe_table_name
+// Private endpoint for storage table
+resource storageTablePrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
+  name: storageTablePrivateEndpointName
   location: location
-  dependsOn: [
-    storageAccountTable
-    vnet
-    dnsZoneTable
-    dnsZoneLinkTable
-  ]
   properties: {
     subnet: {
-      id: vnet.outputs.subnet_ids['private-endpoints']
+      id: virtualNetworkModule.outputs.subnet_ids.privateEndpoints
     }
     privateLinkServiceConnections: [
       {
         name: 'table-connection'
         properties: {
-          privateLinkServiceId: storageAccountTable.outputs.storageAccountId
+          privateLinkServiceId: storageAccountModule.outputs.storageAccountId
           groupIds: ['table']
-        }
-      }
-    ]
-    privateDnsZoneGroups: [
-      {
-        name: 'table-dns-group'
-        properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'tableZoneConfig'
-              properties: {
-                privateDnsZoneId: dnsZoneTable.id
-              }
-            }
-          ]
         }
       }
     ]
   }
 }
 
-resource kvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
-  name: pe_keyvault_name
+// Private endpoint for Key Vault
+resource keyVaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
+  name: keyVaultPrivateEndpointName
   location: location
-  dependsOn: [
-    keyvault
-    vnet
-    dnsZoneVault
-    dnsZoneLinkVault
-  ]
   properties: {
     subnet: {
-      id: vnet.outputs.subnet_ids['private-endpoints']
+      id: virtualNetworkModule.outputs.subnet_ids.privateEndpoints
     }
     privateLinkServiceConnections: [
       {
         name: 'keyvault-connection'
         properties: {
-          privateLinkServiceId: keyvault.outputs.keyvaultId
+          privateLinkServiceId: keyVaultModule.outputs.keyvaultId
           groupIds: ['vault']
         }
       }
     ]
-    privateDnsZoneGroups: [
-      {
-        name: 'kv-dns-group'
-        properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'kvZoneConfig'
-              properties: {
-                privateDnsZoneId: dnsZoneVault.id
-              }
-            }
-          ]
-        }
-      }
-    ]
   }
 }
 
-
-resource dnsZoneVault 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: 'privatelink.vaultcore.azure.net'
-  location: 'global'
-}
-
-resource dnsZoneTable 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: 'privatelink.table.core.windows.net'
-  location: 'global'
-}
-
-// Link zones to your VNet
-resource dnsZoneLinkVault 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: 'link-vault'
-  parent: dnsZoneVault
-  location: 'global'
-  properties: {
-    virtualNetwork: {
-      id: vnet.outputs.vnet_id
-    }
-    registrationEnabled: false
-  }
-  dependsOn: [
-    dnsZoneVault
-    vnet
-  ]
-}
-
-resource dnsZoneLinkTable 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: 'link-table'
-  parent: dnsZoneTable
-  location: 'global'
-  properties: {
-    virtualNetwork: {
-      id: vnet.outputs.vnet_id
-    }
-    registrationEnabled: false
-  }
-  dependsOn: [
-    dnsZoneTable
-    vnet
-  ]
-}
-
-// DNS A Record Sets for Private Endpoints
-resource dnsARecordVault 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
-  name: keyvault_name
-  parent: dnsZoneVault
+// DNS A records for private endpoints
+resource dnsRecordVault 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
+  name: keyVaultName
+  parent: privateDnsZoneVault
   properties: {
     ttl: 300
     aRecords: [
       {
-        ipv4Address: kvPrivateEndpoint.properties.customDnsConfigs[0].ipAddresses[0]
+        ipv4Address: keyVaultPrivateEndpoint.properties.customDnsConfigs[0].ipAddresses[0]
       }
     ]
   }
 }
 
-resource dnsARecordTable 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
-  name: storageAccountTableName
-  parent: dnsZoneTable
+resource dnsRecordTable 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
+  name: storageAccountName
+  parent: privateDnsZoneTable
   properties: {
     ttl: 300
     aRecords: [
       {
-        ipv4Address: peStorageTable.properties.customDnsConfigs[0].ipAddresses[0]
+        ipv4Address: storageTablePrivateEndpoint.properties.customDnsConfigs[0].ipAddresses[0]
       }
     ]
   }
 }
 
-// App Service (frontend + backend)
-module appServiceModule './modules/app_service.bicep' = {
-  name: 'deployAppService'
-  params: {
-    appServiceName: app_service_name
-    appServicePlanName: app_service_plan_name
-    skuName: app_service_sku_name
-    location: location
-    nodeVersion: '~20'
-    subnetId: vnet.outputs.subnet_ids['appservice']
-  }
-  dependsOn: [
-    keyvault
-    storageAccountTable
-  ]
-}
+//============================================================================
+// OUTPUTS
+//============================================================================
 
-///// OUTPUTS /////
-
-output subnet_ids object = vnet.outputs.subnet_ids
-output storageTableId string = storageAccountTable.outputs.storageAccountId
+output subnetIds object = virtualNetworkModule.outputs.subnet_ids
+output storageAccountId string = storageAccountModule.outputs.storageAccountId
+output keyVaultId string = keyVaultModule.outputs.keyvaultId
 output appServicePrincipalId string = appServiceModule.outputs.appServicePrincipalId
+output logAnalyticsWorkspaceId string = logAnalyticsWorkspaceModule.outputs.log_workspace_id
 

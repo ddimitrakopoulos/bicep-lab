@@ -1,27 +1,35 @@
-@description('Name of the App Service')
+//============================================================================
+// PARAMETERS
+//============================================================================
+
+@description('Name of the App Service web application')
 param appServiceName string
 
-@description('Name of the App Service Plan')
+@description('Name of the App Service hosting plan')
 param appServicePlanName string
 
-@description('Location for resources')
+@description('Location where the App Service resources will be deployed')
 param location string
 
-@description('SKU for the App Service Plan')
-param skuName string = 'B1'
+@description('SKU for the App Service hosting plan')
+param appServicePlanSkuName string = 'B1'
 
-@description('Node.js runtime version')
-param nodeVersion string = '~20'
+@description('Node.js runtime version for the App Service')
+param nodeJsVersion string = '~20'
 
-@description('Subnet ID for VNet integration')
+@description('Subnet resource ID for VNet integration')
 param subnetId string
+
+//============================================================================
+// RESOURCES
+//============================================================================
 
 // Create the App Service Plan
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   name: appServicePlanName
   location: location
   sku: {
-    name: skuName
+    name: appServicePlanSkuName
     capacity: 1
   }
   kind: 'linux'
@@ -42,7 +50,7 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
     serverFarmId: appServicePlan.id
     httpsOnly: true
     siteConfig: {
-      linuxFxVersion: 'NODE|${nodeVersion}'
+      linuxFxVersion: 'NODE|${nodeJsVersion}'
       appSettings: [
         {
           name: 'PORT'
@@ -71,8 +79,12 @@ resource vnetIntegration 'Microsoft.Web/sites/networkConfig@2022-09-01' = {
   }
 }
 
-// Outputs (no URL or source control info)
+//============================================================================
+// OUTPUTS
+//============================================================================
+
 output appServiceId string = webApp.id
+output appServiceName string = webApp.name
 output appServicePlanId string = appServicePlan.id
 output appServicePrincipalId string = webApp.identity.principalId
 

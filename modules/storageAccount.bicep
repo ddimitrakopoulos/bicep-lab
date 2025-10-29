@@ -1,17 +1,25 @@
+//============================================================================
+// PARAMETERS
+//============================================================================
+
 @description('Name of the Storage Account')
 param storageAccountName string
 
-@description('Location for the Storage Account')
+@description('Location where the Storage Account will be deployed')
 param location string = resourceGroup().location
 
-@description('Optional tags')
+@description('Tags to apply to the Storage Account')
 param tags object = {}
 
-@description('Allow public access to blobs (default: false)')
+@description('Allow public access to blobs')
 param allowBlobPublicAccess bool = false
 
-@description('Allow public network access (default: Disabled)')
+@description('Allow public network access to the Storage Account')
 param publicNetworkAccess string = 'Disabled'
+
+//============================================================================
+// RESOURCES
+//============================================================================
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageAccountName
@@ -34,6 +42,10 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
+//============================================================================
+// OUTPUTS
+//============================================================================
+
 output storageAccountId string = storageAccount.id
 output storageAccountName string = storageAccount.name
-output storageAccountPrimaryEndpoints object = storageAccount.properties.primaryEndpoints
+output primaryEndpoints object = storageAccount.properties.primaryEndpoints
