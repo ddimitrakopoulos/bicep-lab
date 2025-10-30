@@ -126,7 +126,9 @@ module storageAccountModule 'modules/storageAccount.bicep' = {
       environment: environment
     }
     allowBlobPublicAccess: false   
-    publicNetworkAccess: 'Disabled'   
+    publicNetworkAccess: 'Disabled'
+    diagnosticsEnabled: diagnosticsEnabled
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceModule.outputs.log_workspace_id
   }
 }
 
@@ -155,7 +157,7 @@ module keyVaultModule 'modules/keyVault.bicep' = {
 
 // Key Vault Secrets
 resource jwtSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  name: '${keyVaultName}/jwt-secret'
+  name: '${keyVaultName}/jwtsecret'
   properties: {
     value: jwtsecret
   }
@@ -165,7 +167,7 @@ resource jwtSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
 }
 
 resource ddimitrPasswordResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  name: '${keyVaultName}/ddimitr-password'
+  name: '${keyVaultName}/ddimitrpass'
   properties: {
     value: ddimitrpass
   }
@@ -175,7 +177,7 @@ resource ddimitrPasswordResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' 
 }
 
 resource helloPasswordResource 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  name: '${keyVaultName}/hello-password'
+  name: '${keyVaultName}/hellopass'
   properties: {
     value: hellopass
   }
@@ -193,6 +195,8 @@ module appServiceModule 'modules/appService.bicep' = {
     location: location
     nodeJsVersion: '~20'
     subnetId: virtualNetworkModule.outputs.subnet_ids.appservice
+    diagnosticsEnabled: diagnosticsEnabled
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceModule.outputs.log_workspace_id
   }
   dependsOn: [
     keyVaultModule

@@ -17,6 +17,12 @@ param allowBlobPublicAccess bool = false
 @description('Allow public network access to the Storage Account')
 param publicNetworkAccess string = 'Disabled'
 
+@description('Enable diagnostic settings for the Storage Account')
+param diagnosticsEnabled bool = false
+
+@description('Resource ID of the Log Analytics workspace for diagnostic settings')
+param logAnalyticsWorkspaceId string = ''
+
 //============================================================================
 // RESOURCES
 //============================================================================
@@ -39,6 +45,25 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
       defaultAction: 'Deny'
       bypass: 'AzureServices'
     }
+  }
+}
+
+// Storage Account diagnostic settings
+resource storageAccountDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (diagnosticsEnabled && !empty(logAnalyticsWorkspaceId)) {
+  name: '${storageAccountName}-diagnostics'
+  scope: storageAccount
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    metrics: [
+      {
+        category: 'Transaction'
+        enabled: true
+      }
+      {
+        category: 'Capacity'
+        enabled: true
+      }
+    ]
   }
 }
 

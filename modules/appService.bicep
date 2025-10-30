@@ -20,6 +20,12 @@ param nodeJsVersion string = '~20'
 @description('Subnet resource ID for VNet integration')
 param subnetId string
 
+@description('Enable diagnostic settings for App Service resources')
+param diagnosticsEnabled bool = false
+
+@description('Resource ID of the Log Analytics workspace for diagnostic settings')
+param logAnalyticsWorkspaceId string = ''
+
 //============================================================================
 // RESOURCES
 //============================================================================
@@ -76,6 +82,42 @@ resource vnetIntegration 'Microsoft.Web/sites/networkConfig@2022-09-01' = {
   name: 'virtualNetwork'
   properties: {
     subnetResourceId: subnetId
+  }
+}
+
+// App Service diagnostic settings
+resource appServiceDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (diagnosticsEnabled && !empty(logAnalyticsWorkspaceId)) {
+  name: '${appServiceName}-diagnostics'
+  scope: webApp
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
+  }
+}
+
+// App Service Plan diagnostic settings
+resource appServicePlanDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (diagnosticsEnabled && !empty(logAnalyticsWorkspaceId)) {
+  name: '${appServicePlanName}-diagnostics'
+  scope: appServicePlan
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
   }
 }
 
