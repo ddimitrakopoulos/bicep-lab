@@ -215,7 +215,7 @@ resource privateDnsZoneVault 'Microsoft.Network/privateDnsZones@2020-06-01' = {
 }
 
 resource privateDnsZoneTable 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: 'privatelink.table${az.environment().suffixes.storage}'
+  name: 'privatelink.table.${az.environment().suffixes.storage}'
   location: 'global'
 }
 
